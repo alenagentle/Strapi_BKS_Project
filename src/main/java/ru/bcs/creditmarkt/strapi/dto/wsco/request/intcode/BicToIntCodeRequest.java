@@ -1,4 +1,4 @@
-package ru.bcs.creditmarkt.strapi.dto;
+package ru.bcs.creditmarkt.strapi.dto.wsco.request.intcode;
 
 import lombok.Setter;
 import lombok.ToString;
@@ -7,9 +7,9 @@ import javax.xml.bind.annotation.*;
 
 @ToString
 @Setter
-@XmlRootElement(name = "BicToRegNumber")
+@XmlRootElement(name = "BicToIntCode")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class BicToRegNumber {
+public class BicToIntCodeRequest {
 
     @XmlAttribute(name = "xmlns")
     private String xmlns="http://web.cbr.ru/";

@@ -1,5 +1,6 @@
 package ru.bcs.creditmarkt.strapi.service;
 
+import com.ibm.icu.text.Transliterator;
 import com.poiji.bind.Poiji;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,8 @@ import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.dto.BankBranch;
 import ru.bcs.creditmarkt.strapi.dto.BankDictionary;
 import ru.bcs.creditmarkt.strapi.dto.BankUnit;
-import ru.bcs.creditmarkt.strapi.utils.TranslitAdapter;
+import ru.bcs.creditmarkt.strapi.utils.Localization;
+import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +23,7 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -32,11 +35,12 @@ public class FileServiceImpl implements FileService {
     private String filePath;
 
     private final StrapiClient strapiClient;
+    private final ResourceBundle messageBundle = Localization.getMessageBundle();
+    public static final String RUSSIAN_TO_LATIN = "Russian-Latin/BGN";
 
     public void loadAndReadXlsFileList(List<MultipartFile> multipartFileList) {
         multipartFileList.forEach(file -> {
-            try {
-                ZipInputStream inputStream = new ZipInputStream(file.getInputStream());
+            try (ZipInputStream inputStream = new ZipInputStream(file.getInputStream())) {
                 Path rootLocation = Paths.get(filePath);
                 for (ZipEntry entry; (entry = inputStream.getNextEntry()) != null; ) {
                     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS");
@@ -51,10 +55,8 @@ public class FileServiceImpl implements FileService {
                     }
                 }
                 inputStream.closeEntry();
-                inputStream.close();
             } catch (IOException e) {
                 log.error(e.getMessage());
-                e.printStackTrace();
             }
         });
     }
@@ -80,24 +82,26 @@ public class FileServiceImpl implements FileService {
                                             strapiClient.createBankUnit(getBankUnit(bankBranch, bankDictionary));
                                         }
                                     } else
-                                        log.info("Bank not found in city '" + bankDictionary.getCity() + "'");
+                                        log.info(String.format(messageBundle.getString("bank.notFoundInTown"), bankDictionary.getCity()));
                                 });
                             } else
-                                log.info("Bank with name '" + bankDictionary.getName() + "' not found");
+                                log.info(String.format(messageBundle.getString("bank.notFoundWithName"), bankDictionary.getName()));
                         }));
     }
 
     private BankUnit getBankUnit(BankBranch bankBranch, BankDictionary bankDictionary) {
+        Transliterator russianToLatin = Transliterator.getInstance(RUSSIAN_TO_LATIN);
+        String slug = StringUtils.toRootLowerCase(russianToLatin.transliterate(bankDictionary.getName()));
         return BankUnit.builder()
                 .name(bankDictionary.getName())
                 .h1(bankDictionary.getName())
-                .slug(StringUtils.toRootLowerCase(TranslitAdapter.transliterate(bankDictionary.getName()).replaceAll("\\s+", "")))
+                .slug(StringUtils.toRootLowerCase(slug).replaceAll("\\s+", ""))
                 .address(bankDictionary.getCity() + ", "
-                        + bankDictionary.getAddress().split(",")[0] + ", "
-                        + bankDictionary.getAddress().split(",")[1])
-                .latitude(bankDictionary.getLatitude().split(" ")[0])
-                .longitude(bankDictionary.getLongitude().split(" ")[1])
-                .type(bankDictionary.getSubheading().contains("Банк") ? "branch" : "atm")
+                        + bankDictionary.getAddress().split(",")[SeparatorConstants.ADDRESS_STREET] + ", "
+                        + bankDictionary.getAddress().split(",")[SeparatorConstants.ADDRESS_STREET_NUMBER])
+                .latitude(bankDictionary.getLatitude().split(" ")[SeparatorConstants.LATITUDE])
+                .longitude(bankDictionary.getLongitude().split(" ")[SeparatorConstants.LONGITUDE])
+                .type(bankDictionary.getSubheading().contains(StringUtils.toRootLowerCase(messageBundle.getString("atm"))) ? "atm" : "branch")
                 .workingHours(bankDictionary.getWorkingHours())
                 .telephones(bankDictionary.getTelephones())
                 .bankBranch(bankBranch.getId().toString())

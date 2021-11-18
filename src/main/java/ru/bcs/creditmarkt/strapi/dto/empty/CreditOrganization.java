@@ -5,10 +5,11 @@ import lombok.*;
 import javax.xml.bind.annotation.*;
 import java.io.Serializable;
 
+@Getter
 @ToString
 @XmlRootElement(name = "Record")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Record implements Serializable {
+public class CreditOrganization implements Serializable {
 
 //    @XmlAttribute(name = "ID")
 //    private Integer id;
@@ -19,5 +20,5 @@ public class Record implements Serializable {
     @XmlElement(name = "ShortName")
     private String shortName;
     @XmlElement(name = "Bic")
-    private Long bic;
+    private String bic;
 }

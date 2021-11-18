@@ -1,4 +1,4 @@
-package ru.bcs.creditmarkt.strapi.dto;
+package ru.bcs.creditmarkt.strapi.dto.wsco.request.intcode;
 
 import lombok.Setter;
 import lombok.ToString;
@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Setter
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "Envelope", namespace = "http://www.w3.org/2003/05/soap-envelope")
-public class Envelope {
+public class EnvelopBicToIntCodeRequest {
     @XmlElement(name = "Body", required = true, namespace = "http://www.w3.org/2003/05/soap-envelope")
-    private Body body;
+    private BodyIntCodeRequest bodyIntCodeRequest;
 }

@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.List;
 
 @ToString
+@Getter
 @XmlRootElement(name = "BicCode")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class BicCode implements Serializable {
@@ -14,5 +15,5 @@ public class BicCode implements Serializable {
 //    private String name;
 
     @XmlElement(name = "Record")
-    private List<Record> records;
+    private List<CreditOrganization> creditOrganizations;
 }

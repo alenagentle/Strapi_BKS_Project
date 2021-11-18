@@ -11,17 +11,15 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.client.WscoClient;
-import ru.bcs.creditmarkt.strapi.dto.BankBranch;
-import ru.bcs.creditmarkt.strapi.dto.BicToRegNumber;
-import ru.bcs.creditmarkt.strapi.dto.Body;
-import ru.bcs.creditmarkt.strapi.dto.Envelope;
+import ru.bcs.creditmarkt.strapi.dto.*;
+import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.BicToRegNumber;
+import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.BodyRegNumber;
+import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.EnvelopeBicToRegNumber;
+import ru.bcs.creditmarkt.strapi.service.BankService;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import javax.xml.soap.*;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
 
@@ -33,12 +31,29 @@ public class FeignController {
     private final StrapiClient strapiClient;
     private final WscoClient wscoClient;
 
+    private final BankService bankService;
+
+    //получение филиалов из страпи через strapi клиент
     @GetMapping("/bank-branches")
-    List<BankBranch> getBanks() {
-        System.out.println("getBanks");
+    List<BankBranch> getBankBranches() {
         return strapiClient.getBankBranches();
     }
 
+    //получение банков из страпи через strapi клиент
+//    @GetMapping("/banks")
+//    List<Bank> getBanks() {
+//        return strapiClient.getBanks();
+//    }
+
+
+    @GetMapping("/sync")
+    void sync() {
+        bankService.sync();
+    }
+
+
+
+    //получение имени и Бик кредитных организаций из ЦБ через feign клиент
     @GetMapping("/creditOrganizations")
     void getCreditOrganizations() {
         System.out.println("result: " + wscoClient.getCreditOrganizations());
@@ -92,38 +107,41 @@ public class FeignController {
 //        }
 
 
-        Envelope envelope = new Envelope();
-        Body body = new Body();
+        //создание объект для SOAP запроса для получения регистрационного номера по бик-у:
+        EnvelopeBicToRegNumber envelopeBicToRegNumber = new EnvelopeBicToRegNumber();
+        BodyRegNumber bodyRegNumber = new BodyRegNumber();
         BicToRegNumber bicToRegNumber = new BicToRegNumber();
         bicToRegNumber.setBicCode("044525225");
-        body.setBicToRegNumber(bicToRegNumber);
-        envelope.setBody(body);
+        bodyRegNumber.setBicToRegNumber(bicToRegNumber);
+        envelopeBicToRegNumber.setBodyRegNumber(bodyRegNumber);
 
-        System.out.println("getLicenseNo: " + wscoClient.getLicenseNo(envelope));
+        //ответ на созданный запрос:
+        System.out.println("getLicenseNo: " + wscoClient.bicToRegNumber(envelopeBicToRegNumber));
 
+        //то же самое через restTemplate
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.TEXT_XML);
-        HttpEntity<Envelope> request = new HttpEntity<>(envelope, headers);
+        HttpEntity<EnvelopeBicToRegNumber> request = new HttpEntity<>(envelopeBicToRegNumber, headers);
         String fooResourceUrl = "http://cbr.ru/CreditInfoWebServ/CreditOrgInfo.asmx";
         System.out.println("restTemplate:" + restTemplate.postForEntity(fooResourceUrl, request, String.class));
 
+        //преобразование созданного объекта EnvelopeBicToRegNumber в XML И его распечатывание:
+        try {
+            JAXBContext jaxbContext = JAXBContext.newInstance(EnvelopeBicToRegNumber.class);
+            Marshaller marshaller = jaxbContext.createMarshaller();
+            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            StringWriter sw = new StringWriter();
+            marshaller.marshal(envelopeBicToRegNumber, sw);
+            String xmlString = sw.toString();
+            System.out.println("..xmlString = "+xmlString);
+            //wscoClient.getLicenseNo(xmlString);
 
-//        try {
-//            JAXBContext jaxbContext = JAXBContext.newInstance(Envelope.class);
-//            Marshaller marshaller = jaxbContext.createMarshaller();
-//            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-//            StringWriter sw = new StringWriter();
-//            marshaller.marshal(envelope, sw);
-//            String xmlString = sw.toString();
-//            System.out.println(xmlString);
-//            //wscoClient.getLicenseNo(xmlString);
-//
-//            //System.out.println("getLicenseNo: " + wscoClient.getLicenseNo(envelope));
-//
-//        } catch (JAXBException ex) {
-//            System.out.println(ex.toString());
-//        }
+            //System.out.println("getLicenseNo: " + wscoClient.getLicenseNo(envelope));
+
+        } catch (JAXBException ex) {
+            System.out.println(ex.toString());
+        }
 
 
 

@@ -1,7 +1,6 @@
 package ru.bcs.creditmarkt.strapi.dto;
 
 import com.poiji.annotation.ExcelCellName;
-import io.github.millij.poi.ss.model.annotations.SheetColumn;
 import lombok.*;
 
 @Getter

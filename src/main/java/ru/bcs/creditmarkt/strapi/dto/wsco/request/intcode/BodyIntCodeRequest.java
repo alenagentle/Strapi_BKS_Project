@@ -1,4 +1,4 @@
-package ru.bcs.creditmarkt.strapi.dto;
+package ru.bcs.creditmarkt.strapi.dto.wsco.request.intcode;
 
 import lombok.Setter;
 import lombok.ToString;
@@ -12,8 +12,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Setter
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "Body")
-public class Body {
-
-    @XmlElement(name = "BicToRegNumber")
-    private BicToRegNumber bicToRegNumber;
+public class BodyIntCodeRequest {
+    @XmlElement(name = "BicToIntCode")
+    private BicToIntCodeRequest bicToIntCodeRequest;
 }
