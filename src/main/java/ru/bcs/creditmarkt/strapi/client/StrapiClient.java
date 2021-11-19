@@ -2,9 +2,9 @@ package ru.bcs.creditmarkt.strapi.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
-import ru.bcs.creditmarkt.strapi.dto.Bank;
-import ru.bcs.creditmarkt.strapi.dto.BankBranch;
-import ru.bcs.creditmarkt.strapi.dto.BankUnit;
+import ru.bcs.creditmarkt.strapi.dto.strapi.Bank;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
 
 import java.util.List;
 

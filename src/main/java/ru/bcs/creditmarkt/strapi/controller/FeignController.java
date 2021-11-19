@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.client.WscoClient;
-import ru.bcs.creditmarkt.strapi.dto.*;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.BicToRegNumber;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.BodyRegNumber;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.EnvelopeBicToRegNumber;

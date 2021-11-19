@@ -1,4 +1,4 @@
-package ru.bcs.creditmarkt.strapi.dto;
+package ru.bcs.creditmarkt.strapi.dto.strapi;
 
 import com.poiji.annotation.ExcelCellName;
 import lombok.*;

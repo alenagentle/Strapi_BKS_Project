@@ -1,4 +1,4 @@
-package ru.bcs.creditmarkt.strapi.dto.empty;
+package ru.bcs.creditmarkt.strapi.dto.wsco.response.nonamespace;
 
 import lombok.*;
 
@@ -6,17 +6,11 @@ import javax.xml.bind.annotation.*;
 import java.io.Serializable;
 
 @Getter
+@Setter
 @ToString
 @XmlRootElement(name = "Record")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class CreditOrganization implements Serializable {
-
-//    @XmlAttribute(name = "ID")
-//    private Integer id;
-//
-//    @XmlAttribute(name = "DU")
-//    private String du;
-
     @XmlElement(name = "ShortName")
     private String shortName;
     @XmlElement(name = "Bic")

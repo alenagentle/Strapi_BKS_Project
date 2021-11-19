@@ -1,4 +1,4 @@
-package ru.bcs.creditmarkt.strapi.dto.wsco.soap;
+package ru.bcs.creditmarkt.strapi.dto.wsco.response.withnamespase;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -13,12 +13,12 @@ import javax.xml.bind.annotation.XmlType;
 @Setter
 @ToString
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "BicToRegNumberResponse", propOrder = {
-        "bicToRegNumberResult"
+@XmlType(name = "BicToIntCodeResponse", propOrder = {
+        "bicToIntCodeResult"
 })
-public class BicToRegNumberResponse {
+public class BicToIntCodeResponse {
 
-    @XmlElement(name = "BicToRegNumberResult")
-    protected String bicToRegNumberResult;
+    @XmlElement(name = "BicToIntCodeResult")
+    protected String bicToIntCodeResult;
 
 }

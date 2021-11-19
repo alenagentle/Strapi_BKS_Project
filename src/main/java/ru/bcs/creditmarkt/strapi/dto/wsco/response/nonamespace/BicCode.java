@@ -1,4 +1,4 @@
-package ru.bcs.creditmarkt.strapi.dto.empty;
+package ru.bcs.creditmarkt.strapi.dto.wsco.response.nonamespace;
 
 import lombok.*;
 
@@ -8,11 +8,10 @@ import java.util.List;
 
 @ToString
 @Getter
+@Setter
 @XmlRootElement(name = "BicCode")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class BicCode implements Serializable {
-//    @XmlAttribute
-//    private String name;
 
     @XmlElement(name = "Record")
     private List<CreditOrganization> creditOrganizations;

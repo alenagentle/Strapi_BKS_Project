@@ -5,4 +5,6 @@ public class SeparatorConstants {
     public static final Integer LONGITUDE = 1;
     public static final Integer ADDRESS_STREET = 0;
     public static final Integer ADDRESS_STREET_NUMBER = 1;
+
+    public static final Integer FIRST_ITEM = 0;
 }

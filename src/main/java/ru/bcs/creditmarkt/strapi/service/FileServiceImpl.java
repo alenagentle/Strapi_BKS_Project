@@ -9,9 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
-import ru.bcs.creditmarkt.strapi.dto.BankBranch;
-import ru.bcs.creditmarkt.strapi.dto.BankDictionary;
-import ru.bcs.creditmarkt.strapi.dto.BankUnit;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankDictionary;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 

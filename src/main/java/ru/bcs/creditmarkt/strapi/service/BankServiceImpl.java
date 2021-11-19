@@ -7,9 +7,7 @@ import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.client.WscoClient;
-import ru.bcs.creditmarkt.strapi.dto.Bank;
-import ru.bcs.creditmarkt.strapi.dto.empty.BicCode;
-import ru.bcs.creditmarkt.strapi.dto.empty.CreditOrganization;
+import ru.bcs.creditmarkt.strapi.dto.strapi.Bank;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.BodyCreditInfoByIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.CreditInfoByIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.EnvelopCreditInfoByIntCodeRequest;
@@ -20,9 +18,12 @@ import ru.bcs.creditmarkt.strapi.dto.wsco.request.intcode.EnvelopBicToIntCodeReq
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.BicToRegNumber;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.BodyRegNumber;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.EnvelopeBicToRegNumber;
-import ru.bcs.creditmarkt.strapi.dto.wsco.response.creditinfo.CO;
-import ru.bcs.creditmarkt.strapi.dto.wsco.soap.BicToIntCodeResponse;
-import ru.bcs.creditmarkt.strapi.dto.wsco.soap.BicToRegNumberResponse;
+import ru.bcs.creditmarkt.strapi.dto.wsco.response.nonamespace.BicCode;
+import ru.bcs.creditmarkt.strapi.dto.wsco.response.nonamespace.CO;
+import ru.bcs.creditmarkt.strapi.dto.wsco.response.nonamespace.CreditOrganization;
+import ru.bcs.creditmarkt.strapi.dto.wsco.response.withnamespase.BicToIntCodeResponse;
+import ru.bcs.creditmarkt.strapi.dto.wsco.response.withnamespase.BicToRegNumberResponse;
+import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -112,7 +113,8 @@ public class BankServiceImpl implements BankService {
                     new ByteArrayInputStream(stringXml.getBytes()));
             Unmarshaller unmarshaller = JAXBContext.newInstance(typedClass).createUnmarshaller();
             Document document = message.getSOAPBody().extractContentAsDocument();
-            JAXBElement<T> response = unmarshaller.unmarshal(document.getElementsByTagName(tagName).item(0), typedClass);
+            JAXBElement<T> response = unmarshaller.
+                    unmarshal(document.getElementsByTagName(tagName).item(SeparatorConstants.FIRST_ITEM), typedClass);
             return response.getValue();
 
         } catch (IOException | SOAPException | JAXBException e) {
@@ -146,7 +148,7 @@ public class BankServiceImpl implements BankService {
     }
 
     //KB-10053
-    //объект для SOAP запроса - для получения информации о кредитной организации
+    //объект для SOAP запроса - для получения информации о кредитной организации по внутреннему коду
     private EnvelopCreditInfoByIntCodeRequest getEnvelopCreditInfoByIntCode(String intCode) {
         EnvelopCreditInfoByIntCodeRequest envelop = new EnvelopCreditInfoByIntCodeRequest();
         BodyCreditInfoByIntCodeRequest body = new BodyCreditInfoByIntCodeRequest();
