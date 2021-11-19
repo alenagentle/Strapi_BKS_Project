@@ -1,11 +1,15 @@
 package ru.bcs.creditmarkt.strapi.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.client.WscoClient;
+import ru.bcs.creditmarkt.strapi.dto.Bank;
+import ru.bcs.creditmarkt.strapi.dto.empty.BicCode;
+import ru.bcs.creditmarkt.strapi.dto.empty.CreditOrganization;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.BodyCreditInfoByIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.CreditInfoByIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.EnvelopCreditInfoByIntCodeRequest;
@@ -16,16 +20,23 @@ import ru.bcs.creditmarkt.strapi.dto.wsco.request.intcode.EnvelopBicToIntCodeReq
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.BicToRegNumber;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.BodyRegNumber;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.EnvelopeBicToRegNumber;
+import ru.bcs.creditmarkt.strapi.dto.wsco.response.creditinfo.CO;
 import ru.bcs.creditmarkt.strapi.dto.wsco.soap.BicToIntCodeResponse;
 import ru.bcs.creditmarkt.strapi.dto.wsco.soap.BicToRegNumberResponse;
-import ru.bcs.creditmarkt.strapi.dto.wsco.response.creditinfo.CO;
 
-import javax.xml.bind.*;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.soap.*;
-import javax.xml.transform.Source;
-import javax.xml.transform.dom.DOMSource;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BankServiceImpl implements BankService {
@@ -36,159 +47,78 @@ public class BankServiceImpl implements BankService {
     //функция для обновление данных в страпи из цбрф
     @Override
     public void sync() {
-//        //получение банков из страпи, у которых одинаковые даты создания и обновления:
-//        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-//        List<Bank> banksForUpdate = strapiClient.getBanks().stream()
-//                .filter(bank -> formatter.format(bank.getCreated_at()).equals(formatter.format(bank.getUpdated_at())))
-//                .collect(Collectors.toList());
-//        System.out.println("banksForUpdate with equals date:" + banksForUpdate);
-//
-//        //получение из цбрф кредитных организация с названием и бик:
-//        BicCode bicCode = wscoClient.getCreditOrganizations();
-//        System.out.println("кредитные организации из ЦБРФ:" + bicCode);
-//
-//        List<CreditOrganization> creditOrganizations = bicCode.getCreditOrganizations();
-//        List<Bank> banks = new ArrayList<>();
-//        creditOrganizations
-//                .forEach(co -> banksForUpdate
-//                        .forEach(bank -> {
-//                            //TODO!!!!! СРАВИНИВАТЬ ПО БИК!!!!
-//                            if (StringUtils.toRootLowerCase(co.getShortName()).equals(StringUtils.toRootLowerCase(bank.getName()))) {
-//                                Bank bankEqualsName = new Bank();
-//                                bankEqualsName.setName(co.getShortName());
-//                                bankEqualsName.setBic(co.getBic());
-//                                bankEqualsName.setCbrId(getBicToIntCodeResponse(wscoClient
-//                                        .bicToIntCode(getEnvelopBicToIntCode(co.getBic()))).getBicToIntCodeResult());
-//                                bankEqualsName.setLicenseNumber(getBicToRegNumberResponse(wscoClient
-//                                        .bicToRegNumber(getEnvelopBicToRegNumber(co.getBic()))).getBicToRegNumberResult());
-//                                banks.add(bankEqualsName);
-//                            }
-//                        }));
-//        System.out.println("banks with equals name for update = " + banks);
-//
+        //получение банков из страпи, у которых одинаковые даты создания и обновления:
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        List<Bank> banksForUpdate = strapiClient.getBanks().stream()
+                .filter(bank -> formatter.format(bank.getCreated_at()).equals(formatter.format(bank.getUpdated_at())))
+                .collect(Collectors.toList());
+        System.out.println("banksForUpdate with equals date:" + banksForUpdate);
 
+        //получение из цбрф кредитных организация с названием и бик:
+        BicCode bicCode = wscoClient.getCreditOrganizations();
+        System.out.println("кредитные организации из ЦБРФ:" + bicCode);
 
-//        //печать регистрационного кода по бик-у из цбрф:
-//        System.out.println();
-        String stringBicToRegNumber = wscoClient.bicToRegNumber(getEnvelopBicToRegNumber("040173745"));
-        System.out.println("regNumber=" + stringBicToRegNumber);
-        //конвертация в объект
-        getBicToRegNumberResponse(stringBicToRegNumber);
-
-        //печать внутреннего кода по бик-у из цбрф (по первому банку):
-        String stringBicToIntCode = wscoClient.bicToIntCode(getEnvelopBicToIntCode("040173745"));
-        System.out.println("intCode=" + stringBicToIntCode);
-        //конвертация в обект
-        getBicToIntCodeResponse(stringBicToIntCode);
-
-        //печать информации о кредитной организации от ЦБРФ по внутреннему коду (intCode)
-        String creditInfoXMLResponse = wscoClient.creditInfoByIntCode(getEnvelopCreditInfoByIntCode("350000004"));
-        System.out.println("CreditInfoXMLResponse: " + creditInfoXMLResponse);
-        //конвертация полученного soap ответа в объект и доступ к его полям
-        getCreditInfoByIntCode(creditInfoXMLResponse);
-
-
-        //Информация о кредитной организации от ЦБРФ по внутреннему коду (intCode)
-//        //запрос кредитной информации:
-//        EnvelopCreditInfoByIntCodeRequest envelop = getEnvelopCreditInfoByIntCode("350000004");
-//        //преобразование объекта в XML и печать:
-//        //просмотр созданного объекта через XML:
-//        try {
-//            JAXBContext jaxbContext = JAXBContext.newInstance(EnvelopCreditInfoByIntCodeRequest.class);
-//            Marshaller marshaller = jaxbContext.createMarshaller();
-//            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-//            StringWriter sw = new StringWriter();
-//            marshaller.marshal(envelop, sw);
-//            String xmlString = sw.toString();
-//            System.out.println("..xmlString = " + xmlString);
-//
-//        } catch (JAXBException ex) {
-//            System.out.println(ex.toString());
-//        }
-
-
+        List<CreditOrganization> creditOrganizations = bicCode.getCreditOrganizations();
+        List<Bank> banks = new ArrayList<>();
+        creditOrganizations
+                .forEach(creditOrg -> banksForUpdate
+                        .forEach(bankForUpdate -> {
+                            //KB-10053
+                            //Сравнивать по бик (но в страпи бик - null) если оставить сравнение по бик, то банки не обновятся
+                            if (StringUtils.toRootLowerCase(creditOrg.getShortName()).equals(StringUtils.toRootLowerCase(bankForUpdate.getName()))) {
+//                                if (co.getBic().equals(bank.getBic())) {
+                                banks.add(getBankWithFieldsFromCreditOrg(creditOrg));
+                            }
+                        }));
+        System.out.println("banks with equals name for update = " + banks);
     }
 
-    private <T> T unmarshal(Node node, Class<T> clazz) throws JAXBException {
-        Source xmlSource = new DOMSource(node);
-        Unmarshaller unmarshaller = JAXBContext.newInstance(clazz).createUnmarshaller();
-        return unmarshaller.unmarshal(xmlSource, clazz).getValue();
+    private Bank getBankWithFieldsFromCreditOrg(CreditOrganization creditOrg) {
+        Bank bank = new Bank();
+        BicToIntCodeResponse bicToIntCodeResponse = getObjectResponse(wscoClient.bicToIntCode(getEnvelopBicToIntCode(creditOrg.getBic())),
+                BicToIntCodeResponse.class, "BicToIntCodeResponse");
+        if (bicToIntCodeResponse != null)
+            bank.setCbrId(bicToIntCodeResponse.getBicToIntCodeResult());
+
+        BicToRegNumberResponse bicToRegNumberResponse = getObjectResponse(wscoClient.bicToRegNumber(getEnvelopBicToRegNumber(creditOrg.getBic())),
+                BicToRegNumberResponse.class, "BicToRegNumberResponse");
+        if (bicToRegNumberResponse != null)
+            bank.setLicenseNumber(bicToRegNumberResponse.getBicToRegNumberResult());
+
+        CO creditInfo = getObjectResponse(wscoClient.creditInfoByIntCode(getEnvelopCreditInfoByIntCode(bank.getCbrId())),
+                CO.class, "CO");
+        if (creditInfo != null) {
+            bank.setLetterBank(Character.toString(creditInfo.getOrgName().charAt(0)));
+            bank.setTelephones(creditInfo.getPhones());
+            bank.setRegistrationDate(creditInfo.getDateKGRRegistration());
+            bank.setHeadOffice(creditInfo.getUstavAdr());
+            bank.setRealAddress(creditInfo.getFactAdr());
+            bank.setAuthorizedCapital(creditInfo.getUstMoney());
+            bank.setSystemParticipation(creditInfo.getSsv_Date());
+            bank.setIsLicenseActive(creditInfo.getOrgStatus());
+            bank.setLeadership(creditInfo.getIsRBFileExist());
+        }
+
+        bank.setName(creditOrg.getShortName());
+        bank.setBic(creditOrg.getBic());
+        return bank;
     }
 
     //KB-10053
-    //конвертация полученого ответа (Информация о кредитной организации) в java объект
-    private void getCreditInfoByIntCode(String stringXml) {
-        //CO creditInfo ;
+    //конвертация полученого SOAP ответа от ЦБРФ в java объект с именем, соответствующего имени тега в ответе
+    private <T> T getObjectResponse(String stringXml, Class<T> typedClass, String tagName) {
         try {
             SOAPMessage message = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL).createMessage(new MimeHeaders(),
                     new ByteArrayInputStream(stringXml.getBytes()));
-            //Unmarshaller unmarshaller = JAXBContext.newInstance(CO.class).createUnmarshaller();
+            Unmarshaller unmarshaller = JAXBContext.newInstance(typedClass).createUnmarshaller();
             Document document = message.getSOAPBody().extractContentAsDocument();
-//            JAXBElement<CO> response1 = unmarshaller.unmarshal(document.getFirstChild(), CO.class);
-//            creditInfo = response1.getValue();
-//            System.out.println("creditInfo = " + creditInfo);
-
-
-//            CO value = response2.getValue();
-//            System.out.println("geees = " + value.getIntCode());
-//            System.out.println("creditInfo2 = " + creditInfo);
-
-
-            Node node = document.getElementsByTagName("CO").item(0);
-
-
-//            JAXBElement<CO> response =
-//                    unmarshaller.unmarshal(document.getElementsByTagName("CO").item(0), CO.class);
-
-
-            CO creditOrg = unmarshal(node, CO.class);
-            System.out.println("creditOrg.getIntCode() = " + creditOrg.getIntCode());
-
-//            System.out.println(response);
-//            System.out.println(response.getValue());
-//            System.out.println(response.getValue().toString());
+            JAXBElement<T> response = unmarshaller.unmarshal(document.getElementsByTagName(tagName).item(0), typedClass);
+            return response.getValue();
 
         } catch (IOException | SOAPException | JAXBException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
-    }
-
-    //KB-10053
-    //конвертация полученого ответа (Внутренний код) в java объект
-    private BicToIntCodeResponse getBicToIntCodeResponse(String stringBicToIntCode) {
-        BicToIntCodeResponse value = new BicToIntCodeResponse();
-        try {
-            SOAPMessage message = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL).createMessage(new MimeHeaders(),
-                    new ByteArrayInputStream(stringBicToIntCode.getBytes()));
-            Unmarshaller unmarshaller = JAXBContext.newInstance(BicToIntCodeResponse.class).createUnmarshaller();
-            Document document = message.getSOAPBody().extractContentAsDocument();
-            JAXBElement<BicToIntCodeResponse> response = unmarshaller.unmarshal(document.getFirstChild(), BicToIntCodeResponse.class);
-            value = response.getValue();
-            System.out.println("value = " + value);
-            System.out.println("value.bicToIntCode = " + value.getBicToIntCodeResult());
-        } catch (IOException | SOAPException | JAXBException e) {
-            e.printStackTrace();
-        }
-        return value;
-    }
-
-    //KB-10053
-    //конвертация полученого ответа (Регистрационный номер) в java объект
-    private BicToRegNumberResponse getBicToRegNumberResponse(String stringBicToRegNumber) {
-        BicToRegNumberResponse value = new BicToRegNumberResponse();
-        try {
-            SOAPMessage message = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL).createMessage(new MimeHeaders(),
-                    new ByteArrayInputStream(stringBicToRegNumber.getBytes()));
-            Unmarshaller unmarshaller = JAXBContext.newInstance(BicToRegNumberResponse.class).createUnmarshaller();
-            Document document = message.getSOAPBody().extractContentAsDocument();
-            JAXBElement<BicToRegNumberResponse> response = unmarshaller.unmarshal(document.getFirstChild(), BicToRegNumberResponse.class);
-
-            value = response.getValue();
-            System.out.println("value.BicToRegNumber = " + value.getBicToRegNumberResult());
-        } catch (IOException | SOAPException | JAXBException e) {
-            e.printStackTrace();
-        }
-        return value;
+        return null;
     }
 
     //KB-10053
