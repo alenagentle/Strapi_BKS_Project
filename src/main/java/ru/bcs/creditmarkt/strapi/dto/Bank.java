@@ -14,6 +14,9 @@ public class Bank {
     String  name;
     String description;
     String slug;
+    String bic;
+    String cbrId;
+    String licenseNumber;
     String letterBank;
     String legalAddress;
     Date published_at;

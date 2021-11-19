@@ -36,13 +36,14 @@ import javax.xml.bind.annotation.XmlType;
 public class BicToIntCodeResponse {
 
     @XmlElement(name = "BicToIntCodeResult")
-    protected int bicToIntCodeResult;
+    protected String bicToIntCodeResult;
 
     /**
      * Gets the value of the bicToIntCodeResult property.
      *
+     * @return
      */
-    public int getBicToIntCodeResult() {
+    public String getBicToIntCodeResult() {
         return bicToIntCodeResult;
     }
 
@@ -50,7 +51,7 @@ public class BicToIntCodeResponse {
      * Sets the value of the bicToIntCodeResult property.
      *
      */
-    public void setBicToIntCodeResult(int value) {
+    public void setBicToIntCodeResult(String value) {
         this.bicToIntCodeResult = value;
     }
 
