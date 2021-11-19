@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
+import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.EnvelopCreditInfoByIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.intcode.EnvelopBicToIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.EnvelopeBicToRegNumber;
 import ru.bcs.creditmarkt.strapi.dto.empty.BicCode;
@@ -33,4 +34,9 @@ public interface WscoClient {
     @ResponseBody
     String bicToIntCode(@RequestBody EnvelopBicToIntCodeRequest envelopBicToIntCodeRequest);
 
+    @PostMapping(value = "/CreditInfoWebServ/CreditOrgInfo.asmx",
+            consumes = MediaType.TEXT_XML_VALUE,
+            produces = MediaType.TEXT_XML_VALUE)
+    @ResponseBody
+    String creditInfoByIntCode(EnvelopCreditInfoByIntCodeRequest envelop);
 }

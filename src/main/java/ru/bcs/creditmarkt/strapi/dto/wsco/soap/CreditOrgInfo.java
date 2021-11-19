@@ -13,12 +13,11 @@ import javax.xml.bind.annotation.XmlType;
 @Setter
 @ToString
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "BicToRegNumberResponse", propOrder = {
-        "bicToRegNumberResult"
+@XmlType(name = "CreditOrgInfo", propOrder = {
+        "co"
 })
-public class BicToRegNumberResponse {
+public class CreditOrgInfo {
 
-    @XmlElement(name = "BicToRegNumberResult")
-    protected String bicToRegNumberResult;
-
+    @XmlElement(name = "CO")
+    protected CO co;
 }
