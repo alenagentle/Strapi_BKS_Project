@@ -1,0 +1,22 @@
+server:
+  port: ${HTTP_PORT:8080}
+
+spring:
+  application:
+    name: partner-card-service
+
+logging:
+  level:
+    org.springframework.security: debug
+    ru.bcs: trace
+  pattern:
+    console: '%clr(${spring.application.name}){magenta} %clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(%M{20}){magenta} %clr(:){faint} %m%n}}'
+
+file-path: ${FILE_PATH:src/main/resources}
+
+partnerCardService:
+  strapiUrl: localhost:1337
+  strapiClient: strapi-client
+
+  wscoUrl: http://cbr.ru/
+  wscoClient: wsco-client
