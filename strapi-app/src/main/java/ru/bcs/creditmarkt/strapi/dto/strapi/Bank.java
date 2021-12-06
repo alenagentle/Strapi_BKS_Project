@@ -24,9 +24,9 @@ public class Bank {
     String registrationDate;
     String headOffice;
     String realAddress;
-    String authorizedCapital;
+    Integer authorizedCapital;
     String systemParticipation;
-    String isLicenseActive;
+    Boolean isLicenseActive;
     String leadership;
     @JsonProperty("published_at")
     Date publishedAt;
@@ -34,4 +34,9 @@ public class Bank {
     Date createdAt;
     @JsonProperty("updated_at")
     Date updatedAt;
+    String name_ablt;
+    String name_gent;
+    String name_loct;
+    String name_datv;
+    String name_accs;
 }

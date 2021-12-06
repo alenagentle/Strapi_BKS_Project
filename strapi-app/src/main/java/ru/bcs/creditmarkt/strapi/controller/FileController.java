@@ -17,6 +17,6 @@ public class FileController implements FileServiceApi {
 
     @Override
     public void uploadFile(@RequestParam("files") List<MultipartFile> multipartFileList) {
-        fileService.loadAndReadXlsFileList(multipartFileList);
+        fileService.treatXlcFileList(multipartFileList);
     }
 }

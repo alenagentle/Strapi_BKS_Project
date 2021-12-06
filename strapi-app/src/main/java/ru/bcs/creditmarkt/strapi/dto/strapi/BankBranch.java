@@ -1,5 +1,6 @@
 package ru.bcs.creditmarkt.strapi.dto.strapi;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.Date;
@@ -18,7 +19,10 @@ public class BankBranch {
     List<City> cities;
     List<BankUnit> bankUnits;
     String bic;
+    @JsonProperty("published_at")
     Date publishedAt;
+    @JsonProperty("created_at")
     Date createdAt;
+    @JsonProperty("updated_at")
     Date updatedAt;
 }

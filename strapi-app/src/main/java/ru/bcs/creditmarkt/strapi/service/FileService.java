@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface FileService {
 
-    void loadAndReadXlsFileList(List<MultipartFile> multipartFileList);
+    void treatXlcFileList(List<MultipartFile> multipartFileList);
 }

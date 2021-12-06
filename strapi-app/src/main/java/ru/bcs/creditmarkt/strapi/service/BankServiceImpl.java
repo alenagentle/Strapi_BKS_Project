@@ -3,8 +3,10 @@ package ru.bcs.creditmarkt.strapi.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
+import ru.bcs.creditmarkt.strapi.client.PhrasyClient;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.client.WscoClient;
 import ru.bcs.creditmarkt.strapi.dto.strapi.Bank;
@@ -40,14 +42,18 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+
 public class BankServiceImpl implements BankService {
     private final StrapiClient strapiClient;
     private final WscoClient wscoClient;
+    private final PhrasyClient phrasyClient;
 
     //KB-10053
     //функция для обновление данных в страпи из цбрф
+    @Scheduled(cron = "${schedule-time}")
     @Override
     public void sync() {
+
         //получение банков из страпи, у которых одинаковые даты создания и обновления:
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         List<Bank> banksForUpdate = strapiClient.getBanks().stream()
@@ -55,6 +61,12 @@ public class BankServiceImpl implements BankService {
                 .collect(Collectors.toList());
         System.out.println("banksForUpdate with equals date:" + banksForUpdate);
 
+        if (banksForUpdate.size() != 0)
+            updateBanks(banksForUpdate);
+    }
+
+    private void updateBanks(List<Bank> banksForUpdate) {
+        System.out.println("updateBanks");
         //получение из цбрф кредитных организация с названием и бик:
         BicCode bicCode = wscoClient.getCreditOrganizations();
         System.out.println("кредитные организации из ЦБРФ:" + bicCode);
@@ -67,15 +79,17 @@ public class BankServiceImpl implements BankService {
                             //KB-10053
                             //Сравнивать по бик (но в страпи бик - null) если оставить сравнение по бик, то банки не обновятся
                             if (StringUtils.toRootLowerCase(creditOrg.getShortName()).equals(StringUtils.toRootLowerCase(bankForUpdate.getName()))) {
-//                                if (co.getBic().equals(bank.getBic())) {
-                                banks.add(getBankWithFieldsFromCreditOrg(creditOrg));
+                                Bank updateStrapiBank = getBankWithFieldsFromCreditOrg(creditOrg, bankForUpdate);
+                                banks.add(updateStrapiBank);
+//                                strapiClient.updateBank(updateStrapiBank.getId(), updateStrapiBank);
                             }
                         }));
         System.out.println("banks with equals name for update = " + banks);
     }
 
-    private Bank getBankWithFieldsFromCreditOrg(CreditOrganization creditOrg) {
+    private Bank getBankWithFieldsFromCreditOrg(CreditOrganization creditOrg, Bank strapiBank) {
         Bank bank = new Bank();
+        bank.setId(strapiBank.getId());
         BicToIntCodeResponse bicToIntCodeResponse = getObjectResponse(wscoClient.bicToIntCode(getEnvelopBicToIntCode(creditOrg.getBic())),
                 BicToIntCodeResponse.class, "BicToIntCodeResponse");
         if (bicToIntCodeResponse != null)
@@ -88,7 +102,16 @@ public class BankServiceImpl implements BankService {
 
         CO creditInfo = getObjectResponse(wscoClient.creditInfoByIntCode(getEnvelopCreditInfoByIntCode(bank.getCbrId())),
                 CO.class, "CO");
+
         if (creditInfo != null) {
+
+            String name_ablt = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "ablt").getAblt();
+            String name_gent = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "gent").getGent();
+            String name_loct = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "loct").getLoct();
+            String name_datv = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "datv").getDatv();
+            String name_accs = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "accs").getAccs();
+
+            bank.setSlug(strapiBank.getSlug());
             bank.setLetterBank(Character.toString(creditInfo.getOrgName().charAt(0)));
             bank.setTelephones(creditInfo.getPhones());
             bank.setRegistrationDate(creditInfo.getDateKGRRegistration());
@@ -96,11 +119,16 @@ public class BankServiceImpl implements BankService {
             bank.setRealAddress(creditInfo.getFactAdr());
             bank.setAuthorizedCapital(creditInfo.getUstMoney());
             bank.setSystemParticipation(creditInfo.getSsvDate());
-            bank.setIsLicenseActive(creditInfo.getOrgStatus());
+            bank.setIsLicenseActive(creditInfo.getOrgStatus().equals("норм."));
             bank.setLeadership(creditInfo.getIsRBFileExist());
+            bank.setName_ablt(name_ablt);
+            bank.setName_gent(name_gent);
+            bank.setName_loct(name_loct);
+            bank.setName_datv(name_datv);
+            bank.setName_accs(name_accs);
         }
 
-        bank.setName(creditOrg.getShortName());
+        bank.setName(strapiBank.getName());
         bank.setBic(creditOrg.getBic());
         return bank;
     }

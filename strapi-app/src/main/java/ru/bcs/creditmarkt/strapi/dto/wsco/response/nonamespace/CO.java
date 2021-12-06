@@ -15,7 +15,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "CO", propOrder = {
         "intCode", "regNumber", "bic", "orgName", "orgFullName", "phones", "dateKGRRegistration", "mainRegNumber",
-        "mainDateReg", "ustavAdr", "factAdr", "ustMoney", "ssvDate", "orgStatus", "isRBFileExist"
+        "mainDateReg", "ustavAdr", "factAdr", "ustMoney", "ssvDate", "orgStatus", "isRBFileExist", "encmane"
 })
 public class CO {
 
@@ -53,7 +53,7 @@ public class CO {
     private String factAdr;
 
     @XmlElement(name = "UstMoney")
-    private String ustMoney;
+    private Integer ustMoney;
 
     @XmlElement(name = "SSV_Date")
     private String ssvDate;
@@ -63,6 +63,9 @@ public class CO {
 
     @XmlElement(name = "IsRBFileExist")
     private String isRBFileExist;
+
+    @XmlElement(name = "encmane")
+    private String encmane;
 
 
 }
