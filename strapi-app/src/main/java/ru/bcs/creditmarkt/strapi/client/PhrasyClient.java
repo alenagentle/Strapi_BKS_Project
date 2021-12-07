@@ -1,6 +1,5 @@
 package ru.bcs.creditmarkt.strapi.client;
 
-import feign.Headers;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;

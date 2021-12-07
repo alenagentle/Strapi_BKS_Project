@@ -11,32 +11,33 @@ import java.util.Date;
 @AllArgsConstructor
 @ToString
 public class Bank {
-    Long id;
-    String name;
-    String description;
-    String slug;
-    String bic;
-    String cbrId;
-    String licenseNumber;
-    String letterBank;
-    String legalAddress;
-    String telephones;
-    String registrationDate;
-    String headOffice;
-    String realAddress;
-    Integer authorizedCapital;
-    String systemParticipation;
-    Boolean isLicenseActive;
-    String leadership;
+    private Long id;
+    private String name;
+    private String description;
+    private String slug;
+    private String bic;
+    private String cbrId;
+    private String licenseNumber;
+    private String letterBank;
+    private String legalAddress;
+    private String telephones;
+    private String registrationDate;
+    private String headOffice;
+    private String realAddress;
+    private Integer authorizedCapital;
+    private String systemParticipation;
+    private Boolean isLicenseActive;
+    private String leadership;
     @JsonProperty("published_at")
-    Date publishedAt;
+    private Date publishedAt;
     @JsonProperty("created_at")
-    Date createdAt;
+    private Date createdAt;
     @JsonProperty("updated_at")
-    Date updatedAt;
-    String name_ablt;
-    String name_gent;
-    String name_loct;
-    String name_datv;
-    String name_accs;
+    private Date updatedAt;
+    private String name_ablt;
+    private String name_gent;
+    private String name_loct;
+    private String name_datv;
+    private String name_accs;
+    private Meta meta;
 }

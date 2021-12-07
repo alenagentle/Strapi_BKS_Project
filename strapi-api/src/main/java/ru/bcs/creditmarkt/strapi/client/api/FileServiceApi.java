@@ -1,5 +1,6 @@
 package ru.bcs.creditmarkt.strapi.client.api;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -11,6 +12,6 @@ import java.util.List;
 public interface FileServiceApi {
 
     @PostMapping("/upload")
-    void uploadFile(@RequestParam("files") List<MultipartFile> multipartFileList);
+    ResponseEntity<String> uploadFile(@RequestParam("files") List<MultipartFile> multipartFileList);
 
 }

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>UploadFile</title>
+</head>
+<body>
+<h3>Загрузка zip-файла</h3>
+<form action="#" th:action="@{/files/upload}" method="post" enctype="multipart/form-data">
+    <p><input type="file" name="files"/></p>
+    <p><input type="submit" value="Отправить"/></p>
+</form>
+</body>

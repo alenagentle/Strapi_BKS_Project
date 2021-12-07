@@ -1,5 +1,6 @@
 package ru.bcs.creditmarkt.strapi.service;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -7,5 +8,5 @@ import java.util.List;
 
 public interface FileService {
 
-    void treatXlcFileList(List<MultipartFile> multipartFileList);
+    ResponseEntity<String> treatXlcFileList(List<MultipartFile> multipartFileList);
 }

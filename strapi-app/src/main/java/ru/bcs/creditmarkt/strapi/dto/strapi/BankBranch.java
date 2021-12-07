@@ -12,17 +12,17 @@ import java.util.List;
 @AllArgsConstructor
 @ToString
 public class BankBranch {
-    Long id;
-    String name;
-    String slug;
-    Bank bank;
-    List<City> cities;
-    List<BankUnit> bankUnits;
-    String bic;
+    private Long id;
+    private String name;
+    private String slug;
+    private Bank bank;
+    private List<City> cities;
+    private List<BankUnit> bankUnits;
+    private String bic;
     @JsonProperty("published_at")
-    Date publishedAt;
+    private Date publishedAt;
     @JsonProperty("created_at")
-    Date createdAt;
+    private Date createdAt;
     @JsonProperty("updated_at")
-    Date updatedAt;
+    private Date updatedAt;
 }

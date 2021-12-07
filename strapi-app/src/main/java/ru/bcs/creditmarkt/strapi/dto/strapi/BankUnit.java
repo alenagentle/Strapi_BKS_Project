@@ -9,15 +9,15 @@ import lombok.*;
 @ToString
 @Builder
 public class BankUnit {
-    Long id;
-    String name;
-    String slug;
-    String h1;
-    String address;
-    String longitude;
-    String latitude;
-    String type;
-    String workingHours;
-    String telephones;
-    String bankBranch;
+    private Long id;
+    private String name;
+    private String slug;
+    private String h1;
+    private String address;
+    private String longitude;
+    private String latitude;
+    private String type;
+    private String workingHours;
+    private String telephones;
+    private String bankBranch;
 }

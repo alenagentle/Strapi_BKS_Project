@@ -1,6 +1,7 @@
 package ru.bcs.creditmarkt.strapi.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,7 +17,7 @@ public class FileController implements FileServiceApi {
     private final FileService fileService;
 
     @Override
-    public void uploadFile(@RequestParam("files") List<MultipartFile> multipartFileList) {
-        fileService.treatXlcFileList(multipartFileList);
+    public ResponseEntity<String> uploadFile(@RequestParam("files") List<MultipartFile> multipartFileList) {
+        return fileService.treatXlcFileList(multipartFileList);
     }
 }

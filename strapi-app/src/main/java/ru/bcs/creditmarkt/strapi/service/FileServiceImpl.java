@@ -6,12 +6,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
 import ru.bcs.creditmarkt.strapi.dto.strapi.BankDictionary;
 import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
+import ru.bcs.creditmarkt.strapi.exception.FileFormatException;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 
@@ -25,6 +28,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -45,9 +49,8 @@ public class FileServiceImpl implements FileService {
     private final SimpleDateFormat dateFormatWithMin = new SimpleDateFormat(messageBundle.getString("time.format.min"));
     private final SimpleDateFormat dateFormatWithMs = new SimpleDateFormat(messageBundle.getString("time.format.ms"));
 
-    public void treatXlcFileList(List<MultipartFile> multipartFileList) {
+    public ResponseEntity<String> treatXlcFileList(List<MultipartFile> multipartFileList) {
         List<Path> pathList = loadXlsFileList(multipartFileList);
-        System.out.println("pathList = " +  pathList);
         List<BankUnit> bankUnits = new ArrayList<>();
         pathList.forEach(path -> {
             List<BankDictionary> bankDictionaries = readXlsFile(path);
@@ -61,13 +64,19 @@ public class FileServiceImpl implements FileService {
             }
         });
         bankUnits.forEach(strapiClient::createBankUnit);
+        return new ResponseEntity<>(
+                "file uploaded",
+                HttpStatus.OK);
     }
-
 
     private List<Path> loadXlsFileList(List<MultipartFile> multipartFileList) {
         System.out.println("loadXlsFileList");
         List<Path> pathList = new ArrayList<>();
         multipartFileList.forEach(file -> {
+            String originalFileName = file.getOriginalFilename();
+            String extension = Objects.requireNonNull(originalFileName).substring(originalFileName.lastIndexOf("."));
+            if(!extension.equals(".zip"))
+                throw new FileFormatException("формат загружаемого файла должен быть 'zip'");
             try (ZipInputStream inputStream = new ZipInputStream(file.getInputStream())) {
                 Path rootLocation = Paths.get(filePath);
                 System.out.println("rootLocation=" + rootLocation);
@@ -75,7 +84,7 @@ public class FileServiceImpl implements FileService {
                     StringBuilder fileName = new StringBuilder(dateFormatWithMs.format(new Timestamp(System.currentTimeMillis())));
                     fileName.append(entry.getName());
                     Path resolvedPath = rootLocation.resolve(fileName.toString()).normalize().toAbsolutePath();
-                    System.out.println("resolvedPath="+ resolvedPath);
+                    System.out.println("resolvedPath=" + resolvedPath);
                     if (!entry.isDirectory()) {
                         Files.copy(inputStream, resolvedPath,
                                 StandardCopyOption.REPLACE_EXISTING);

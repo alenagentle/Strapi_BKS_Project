@@ -10,7 +10,6 @@ import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
 import java.util.List;
 
 @FeignClient(name = "${partnerCardService.strapiClient}",
-//        configuration = FeignConfig.class,
         url = "${partnerCardService.strapiUrl}")
 public interface StrapiClient {
 

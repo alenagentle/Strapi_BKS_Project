@@ -9,23 +9,23 @@ import lombok.*;
 @AllArgsConstructor
 @ToString
 public class BankDictionary {
-    Long id;
+    private Long id;
     @ExcelCellName("Название")
-    String  name;
+    private String  name;
     @ExcelCellName("Регион")
-    String region;
+    private String region;
     @ExcelCellName("Город")
-    String city;
+    private String city;
     @ExcelCellName("Адрес")
-    String address;
+    private String address;
     @ExcelCellName("Координаты")
-    String latitude;
+    private String latitude;
     @ExcelCellName("Координаты")
-    String longitude;
+    private String longitude;
     @ExcelCellName("Подрубрика")
-    String subheading;
+    private String subheading;
     @ExcelCellName("Время работы")
-    String workingHours;
+    private String workingHours;
     @ExcelCellName("Телефон")
-    String telephones;
+    private String telephones;
 }

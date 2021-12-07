@@ -7,7 +7,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class City {
-    private Long id;
-    private String name;
+public class Meta {
+    private String ogTitle;
+    private String ogDescription;
+    private String description;
 }
