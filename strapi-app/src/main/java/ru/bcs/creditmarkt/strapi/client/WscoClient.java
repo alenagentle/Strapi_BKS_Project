@@ -6,13 +6,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
+import ru.bcs.creditmarkt.strapi.config.LogConfig;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.EnvelopCreditInfoByIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.intcode.EnvelopBicToIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.regnumber.EnvelopeBicToRegNumber;
 import ru.bcs.creditmarkt.strapi.dto.wsco.response.nonamespace.BicCode;
 
 @FeignClient(name = "${partnerCardService.wscoClient}",
-        url = "${partnerCardService.wscoUrl}")
+        url = "${partnerCardService.wscoUrl}",
+        configuration = LogConfig.class)
 public interface WscoClient {
 
     //KB-10053

@@ -61,17 +61,18 @@ public class BankServiceImpl implements BankService {
         List<Bank> banksForUpdate = strapiClient.getBanks().stream()
                 .filter(bank -> formatter.format(bank.getCreatedAt()).equals(formatter.format(bank.getUpdatedAt())))
                 .collect(Collectors.toList());
-        log.info("banksForUpdate with equals date:" + banksForUpdate);
+//        log.info("banksForUpdate with equals date:" + banksForUpdate);
 
         if (banksForUpdate.size() != 0)
             updateBanks(banksForUpdate);
     }
 
     private void updateBanks(List<Bank> banksForUpdate) {
-        System.out.println("updateBanks");
+//        System.out.println("updateBanks");
         //получение из цбрф кредитных организация с названием и бик:
         BicCode bicCode = wscoClient.getCreditOrganizations();
-        System.out.println("кредитные организации из ЦБРФ:" + bicCode);
+//        System.out.println("кредитные организации из ЦБРФ:" + bicCode);
+        log.info("credit organizations: " + bicCode);
 
         List<CreditOrganization> creditOrganizations = bicCode.getCreditOrganizations();
         List<Bank> banks = new ArrayList<>();
@@ -81,12 +82,13 @@ public class BankServiceImpl implements BankService {
                             //KB-10053
                             //Сравнивать по бик (но в страпи бик - null) если оставить сравнение по бик, то банки не обновятся
                             if (StringUtils.toRootLowerCase(creditOrg.getShortName()).equals(StringUtils.toRootLowerCase(bankForUpdate.getName()))) {
+//                                System.out.println("name " + creditOrg.getShortName() + " equals with " + bankForUpdate.getName());
                                 Bank updateStrapiBank = getBankWithFieldsFromCreditOrg(creditOrg, bankForUpdate);
                                 banks.add(updateStrapiBank);
 //                                strapiClient.updateBank(updateStrapiBank.getId(), updateStrapiBank);
                             }
                         }));
-        System.out.println("banks with equals name for update = " + banks);
+//        System.out.println("banks with equals name for update = " + banks);
     }
 
     private Bank getBankWithFieldsFromCreditOrg(CreditOrganization creditOrg, Bank strapiBank) {

@@ -8,7 +8,9 @@ spring:
 logging:
   level:
     org.springframework.security: debug
-    ru.bcs: trace
+    ru.bcs.creditmarkt.strapi.client: debug
+
+
   pattern:
     console: '%clr(${spring.application.name}){magenta} %clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(%M{20}){magenta} %clr(:){faint} %m%n}}'
 
@@ -23,4 +25,10 @@ partnerCardService:
 
   phrasyUrl: https://odobrim.ru/phrasy
 
-schedule-time: 0 0/60 * * * *
+  url: localhost:8080
+
+schedule-time: 0 0/1 * * * *
+
+feign:
+  log:
+    level: ${LOG_LEVEL_FEIGN:HEADERS}

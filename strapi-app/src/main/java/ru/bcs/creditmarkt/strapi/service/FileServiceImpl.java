@@ -14,6 +14,7 @@ import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
 import ru.bcs.creditmarkt.strapi.dto.strapi.BankDictionary;
 import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnitParent;
 import ru.bcs.creditmarkt.strapi.exception.FileFormatException;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
@@ -63,6 +64,28 @@ public class FileServiceImpl implements FileService {
                 }
             }
         });
+
+        List<BankUnitParent> strapiBankUnits = strapiClient.getBankUnits();
+        System.out.println("strapiBankUnits = " + strapiBankUnits);
+
+        List<BankUnit> updatedBankUnits = new ArrayList<>();
+
+        strapiBankUnits.forEach(strapiBankUnit -> {
+            bankUnits.forEach(bankUnit -> {
+                if (Objects.equals(strapiBankUnit.getLongId(), bankUnit.getLongId())) {
+
+                    System.out.println("bankUnit for update:");
+                    System.out.println("strapiBankUnit.getId() = " + strapiBankUnit.getId());
+                    System.out.println("bankUnit = " + bankUnit);
+                    strapiClient.updateBankUnit(strapiBankUnit.getId(), bankUnit);
+                    updatedBankUnits.add(bankUnit);
+                }
+            });
+        });
+
+        updatedBankUnits.forEach(bankUnits::remove);
+        System.out.println("bankUnits after remove = " + bankUnits);
+
         bankUnits.forEach(strapiClient::createBankUnit);
         return new ResponseEntity<>(
                 "file uploaded",
@@ -70,21 +93,18 @@ public class FileServiceImpl implements FileService {
     }
 
     private List<Path> loadXlsFileList(List<MultipartFile> multipartFileList) {
-        System.out.println("loadXlsFileList");
         List<Path> pathList = new ArrayList<>();
         multipartFileList.forEach(file -> {
             String originalFileName = file.getOriginalFilename();
             String extension = Objects.requireNonNull(originalFileName).substring(originalFileName.lastIndexOf("."));
-            if(!extension.equals(".zip"))
-                throw new FileFormatException("формат загружаемого файла должен быть 'zip'");
+            if (!extension.equals(".zip"))
+                throw new FileFormatException(messageBundle.getString("text.formatRequired"));
             try (ZipInputStream inputStream = new ZipInputStream(file.getInputStream())) {
                 Path rootLocation = Paths.get(filePath);
-                System.out.println("rootLocation=" + rootLocation);
                 for (ZipEntry entry; (entry = inputStream.getNextEntry()) != null; ) {
                     StringBuilder fileName = new StringBuilder(dateFormatWithMs.format(new Timestamp(System.currentTimeMillis())));
                     fileName.append(entry.getName());
                     Path resolvedPath = rootLocation.resolve(fileName.toString()).normalize().toAbsolutePath();
-                    System.out.println("resolvedPath=" + resolvedPath);
                     if (!entry.isDirectory()) {
                         Files.copy(inputStream, resolvedPath,
                                 StandardCopyOption.REPLACE_EXISTING);
@@ -110,7 +130,6 @@ public class FileServiceImpl implements FileService {
 
     private void filterBankBranches(List<BankDictionary> bankDictionaries, List<BankUnit> bankUnits) {
         List<BankBranch> strapiBankBranches = strapiClient.getBankBranches();
-        System.out.println("strapiBankBranches=" + strapiBankBranches);
         bankDictionaries.forEach(bankDictionary -> {
             filterByBankName(strapiBankBranches, bankDictionary, bankUnits);
         });
@@ -171,6 +190,7 @@ public class FileServiceImpl implements FileService {
                 .workingHours(bankDictionary.getWorkingHours())
                 .telephones(bankDictionary.getTelephones())
                 .bankBranch(bankBranch.getId().toString())
+                .longId(bankDictionary.getId())
                 .build();
     }
 

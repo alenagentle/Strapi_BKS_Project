@@ -9,7 +9,8 @@ import lombok.*;
 @AllArgsConstructor
 @ToString
 public class BankDictionary {
-    private Long id;
+    @ExcelCellName("ID")
+    private String id;
     @ExcelCellName("Название")
     private String  name;
     @ExcelCellName("Регион")
