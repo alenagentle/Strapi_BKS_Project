@@ -18,6 +18,6 @@ public class FileController implements FileServiceApi {
 
     @Override
     public ResponseEntity<String> uploadFile(@RequestParam("files") List<MultipartFile> multipartFileList) {
-        return fileService.treatXlcFileList(multipartFileList);
+        return fileService.manageBankUnits(multipartFileList);
     }
 }

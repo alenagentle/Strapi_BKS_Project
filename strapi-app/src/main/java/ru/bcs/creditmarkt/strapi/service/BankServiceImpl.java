@@ -81,7 +81,10 @@ public class BankServiceImpl implements BankService {
                         .forEach(bankForUpdate -> {
                             //KB-10053
                             //Сравнивать по бик (но в страпи бик - null) если оставить сравнение по бик, то банки не обновятся
-                            if (StringUtils.toRootLowerCase(creditOrg.getShortName()).equals(StringUtils.toRootLowerCase(bankForUpdate.getName()))) {
+//                            if (creditOrg.getBic().equals(bankForUpdate.getBic())) {
+//
+//                            } else
+                                if (StringUtils.toRootLowerCase(creditOrg.getShortName()).equals(StringUtils.toRootLowerCase(bankForUpdate.getName()))) {
 //                                System.out.println("name " + creditOrg.getShortName() + " equals with " + bankForUpdate.getName());
                                 Bank updateStrapiBank = getBankWithFieldsFromCreditOrg(creditOrg, bankForUpdate);
                                 banks.add(updateStrapiBank);

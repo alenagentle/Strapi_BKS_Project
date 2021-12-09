@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -50,12 +51,38 @@ public class FileServiceImpl implements FileService {
     private final SimpleDateFormat dateFormatWithMin = new SimpleDateFormat(messageBundle.getString("time.format.min"));
     private final SimpleDateFormat dateFormatWithMs = new SimpleDateFormat(messageBundle.getString("time.format.ms"));
 
-    public ResponseEntity<String> treatXlcFileList(List<MultipartFile> multipartFileList) {
-        List<Path> pathList = loadXlsFileList(multipartFileList);
+    public ResponseEntity<String> manageBankUnits(List<MultipartFile> multipartFileList) {
         List<BankUnit> bankUnits = new ArrayList<>();
+        AtomicReference<List<BankDictionary>> bankDictionaries = new AtomicReference<>();
+        List<BankUnit> updatedBankUnits = new ArrayList<>();
+
+        List<Path> pathList = loadXlsFileList(multipartFileList);
+        readXlsFileList(pathList, bankUnits, bankDictionaries);
+        updateBankUnit(bankUnits, updatedBankUnits);
+        updatedBankUnits.forEach(bankUnits::remove);
+        bankUnits.forEach(strapiClient::createBankUnit);
+
+        return new ResponseEntity<>(
+                "file uploaded",
+                HttpStatus.OK);
+    }
+
+    private void updateBankUnit(List<BankUnit> bankUnits, List<BankUnit> updatedBankUnits) {
+        List<BankUnitParent> strapiBankUnits = strapiClient.getBankUnits();
+        strapiBankUnits.forEach(strapiBankUnit -> {
+            bankUnits.forEach(bankUnit -> {
+                if (Objects.equals(strapiBankUnit.getLongId(), bankUnit.getLongId())) {
+                    strapiClient.updateBankUnit(strapiBankUnit.getId(), bankUnit);
+                    updatedBankUnits.add(bankUnit);
+                }
+            });
+        });
+    }
+
+    private void readXlsFileList(List<Path> pathList, List<BankUnit> bankUnits, AtomicReference<List<BankDictionary>> bankDictionaries) {
         pathList.forEach(path -> {
-            List<BankDictionary> bankDictionaries = readXlsFile(path);
-            filterBankBranches(bankDictionaries, bankUnits);
+            bankDictionaries.set(readXlsFile(path));
+            filterBankBranches(bankDictionaries.get(), bankUnits);
             if (Files.exists(path)) {
                 try {
                     Files.delete(path);
@@ -64,32 +91,6 @@ public class FileServiceImpl implements FileService {
                 }
             }
         });
-
-        List<BankUnitParent> strapiBankUnits = strapiClient.getBankUnits();
-        System.out.println("strapiBankUnits = " + strapiBankUnits);
-
-        List<BankUnit> updatedBankUnits = new ArrayList<>();
-
-        strapiBankUnits.forEach(strapiBankUnit -> {
-            bankUnits.forEach(bankUnit -> {
-                if (Objects.equals(strapiBankUnit.getLongId(), bankUnit.getLongId())) {
-
-                    System.out.println("bankUnit for update:");
-                    System.out.println("strapiBankUnit.getId() = " + strapiBankUnit.getId());
-                    System.out.println("bankUnit = " + bankUnit);
-                    strapiClient.updateBankUnit(strapiBankUnit.getId(), bankUnit);
-                    updatedBankUnits.add(bankUnit);
-                }
-            });
-        });
-
-        updatedBankUnits.forEach(bankUnits::remove);
-        System.out.println("bankUnits after remove = " + bankUnits);
-
-        bankUnits.forEach(strapiClient::createBankUnit);
-        return new ResponseEntity<>(
-                "file uploaded",
-                HttpStatus.OK);
     }
 
     private List<Path> loadXlsFileList(List<MultipartFile> multipartFileList) {

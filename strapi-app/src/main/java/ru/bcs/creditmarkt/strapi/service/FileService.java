@@ -8,5 +8,5 @@ import java.util.List;
 
 public interface FileService {
 
-    ResponseEntity<String> treatXlcFileList(List<MultipartFile> multipartFileList);
+    ResponseEntity<String> manageBankUnits(List<MultipartFile> multipartFileList);
 }
