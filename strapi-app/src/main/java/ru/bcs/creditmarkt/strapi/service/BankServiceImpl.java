@@ -81,17 +81,16 @@ public class BankServiceImpl implements BankService {
                         .forEach(bankForUpdate -> {
                             //KB-10053
                             //Сравнивать по бик (но в страпи бик - null) если оставить сравнение по бик, то банки не обновятся
-//                            if (creditOrg.getBic().equals(bankForUpdate.getBic())) {
-//
-//                            } else
-                                if (StringUtils.toRootLowerCase(creditOrg.getShortName()).equals(StringUtils.toRootLowerCase(bankForUpdate.getName()))) {
+                            if (creditOrg.getBic().equals(bankForUpdate.getBic()) ||
+                                    StringUtils.toRootLowerCase(creditOrg.getShortName())
+                                            .equals(StringUtils.toRootLowerCase(bankForUpdate.getName()))) {
 //                                System.out.println("name " + creditOrg.getShortName() + " equals with " + bankForUpdate.getName());
                                 Bank updateStrapiBank = getBankWithFieldsFromCreditOrg(creditOrg, bankForUpdate);
                                 banks.add(updateStrapiBank);
-//                                strapiClient.updateBank(updateStrapiBank.getId(), updateStrapiBank);
+                                strapiClient.updateBank(updateStrapiBank.getId(), updateStrapiBank);
                             }
                         }));
-//        System.out.println("banks with equals name for update = " + banks);
+        System.out.println("banks with equals name for update = " + banks);
     }
 
     private Bank getBankWithFieldsFromCreditOrg(CreditOrganization creditOrg, Bank strapiBank) {
@@ -137,6 +136,8 @@ public class BankServiceImpl implements BankService {
             meta.setDescription(creditInfo.getOrgName());
             meta.setOgDescription(creditInfo.getOrgName());
             meta.setOgTitle(creditInfo.getOrgName());
+            meta.setTitle(creditInfo.getOrgName());
+            bank.setH1(creditInfo.getOrgName());
             bank.setMeta(meta);
         }
 

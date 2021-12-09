@@ -11,18 +11,18 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(callSuper = true)
-public class BankBranch extends BankBranchParent{
-//    private Long id;
-//    private String name;
-//    private String slug;
+public class BankBranch{
+    private Long id;
+    private String name;
+    private String slug;
     private Bank bank;
-//    private List<City> cities;
-//    private List<BankUnit> bankUnits;
-//    private String bic;
-//    @JsonProperty("published_at")
-//    private Date publishedAt;
-//    @JsonProperty("created_at")
-//    private Date createdAt;
-//    @JsonProperty("updated_at")
-//    private Date updatedAt;
+    private List<City> cities;
+    private List<BankUnit> bankUnits;
+    private String bic;
+    @JsonProperty("published_at")
+    private Date publishedAt;
+    @JsonProperty("created_at")
+    private Date createdAt;
+    @JsonProperty("updated_at")
+    private Date updatedAt;
 }

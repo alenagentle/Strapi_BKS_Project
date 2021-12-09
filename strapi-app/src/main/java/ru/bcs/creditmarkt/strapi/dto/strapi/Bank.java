@@ -40,4 +40,5 @@ public class Bank {
     private String name_datv;
     private String name_accs;
     private Meta meta;
+    private String h1;
 }

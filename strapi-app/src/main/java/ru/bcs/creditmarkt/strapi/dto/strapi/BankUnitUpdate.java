@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class BankUnitParent {
+public class BankUnitUpdate {
     private Long id;
     private String name;
     private String slug;

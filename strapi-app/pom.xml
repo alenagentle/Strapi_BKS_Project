@@ -18,6 +18,8 @@
 
 	<properties>
 		<java.version>1.8</java.version>
+		<mapstruct.version>1.4.2.Final</mapstruct.version>
+		<lombok.version>1.18.22</lombok.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -45,9 +47,16 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.22</version>
+			<version>${lombok.version}</version>
 			<optional>true</optional>
 		</dependency>
+
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
@@ -108,18 +117,6 @@
 			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
 
-<!--		<dependency>-->
-<!--			<groupId>com.fasterxml.jackson.core</groupId>-->
-<!--			<artifactId>jackson-core</artifactId>-->
-<!--			<version>2.13.0</version>-->
-<!--		</dependency>-->
-
-<!--		<dependency>-->
-<!--			<groupId>com.fasterxml.jackson.core</groupId>-->
-<!--			<artifactId>jackson-databind</artifactId>-->
-<!--			<version>2.13.0</version>-->
-<!--		</dependency>-->
-
 		<dependency>
 			<groupId>com.netflix.feign</groupId>
 			<artifactId>feign-jackson</artifactId>
@@ -141,6 +138,29 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>${mapstruct.version}</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 

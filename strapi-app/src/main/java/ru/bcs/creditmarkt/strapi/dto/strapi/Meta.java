@@ -8,6 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @ToString
 public class Meta {
+    private String title;
     private String ogTitle;
     private String ogDescription;
     private String description;

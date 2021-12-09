@@ -11,11 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
-import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
-import ru.bcs.creditmarkt.strapi.dto.strapi.BankDictionary;
-import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
-import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnitParent;
+import ru.bcs.creditmarkt.strapi.dto.strapi.*;
 import ru.bcs.creditmarkt.strapi.exception.FileFormatException;
+import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 
@@ -45,11 +43,14 @@ public class FileServiceImpl implements FileService {
     @Value("${file-path}")
     private String filePath;
 
+    private final BankUnitMapper mapper;
+
     private final StrapiClient strapiClient;
     private final ResourceBundle messageBundle = Localization.getMessageBundle();
     private static final String RUSSIAN_TO_LATIN = "Russian-Latin/BGN";
     private final SimpleDateFormat dateFormatWithMin = new SimpleDateFormat(messageBundle.getString("time.format.min"));
     private final SimpleDateFormat dateFormatWithMs = new SimpleDateFormat(messageBundle.getString("time.format.ms"));
+    private final String resolvedPathText = "resolvedPath - %s";
 
     public ResponseEntity<String> manageBankUnits(List<MultipartFile> multipartFileList) {
         List<BankUnit> bankUnits = new ArrayList<>();
@@ -62,17 +63,15 @@ public class FileServiceImpl implements FileService {
         updatedBankUnits.forEach(bankUnits::remove);
         bankUnits.forEach(strapiClient::createBankUnit);
 
-        return new ResponseEntity<>(
-                "file uploaded",
-                HttpStatus.OK);
+        return new ResponseEntity<>("file uploaded", HttpStatus.OK);
     }
 
     private void updateBankUnit(List<BankUnit> bankUnits, List<BankUnit> updatedBankUnits) {
-        List<BankUnitParent> strapiBankUnits = strapiClient.getBankUnits();
-        strapiBankUnits.forEach(strapiBankUnit -> {
+        List<BankUnitUpdate> bankUnitUpdateList = strapiClient.getBankUnits();
+        bankUnitUpdateList.forEach(strapiBankUnit -> {
             bankUnits.forEach(bankUnit -> {
                 if (Objects.equals(strapiBankUnit.getLongId(), bankUnit.getLongId())) {
-                    strapiClient.updateBankUnit(strapiBankUnit.getId(), bankUnit);
+                    strapiClient.updateBankUnit(strapiBankUnit.getId(), mapper.fromBankUnitToBankUnitForRead(bankUnit));
                     updatedBankUnits.add(bankUnit);
                 }
             });
@@ -106,6 +105,7 @@ public class FileServiceImpl implements FileService {
                     StringBuilder fileName = new StringBuilder(dateFormatWithMs.format(new Timestamp(System.currentTimeMillis())));
                     fileName.append(entry.getName());
                     Path resolvedPath = rootLocation.resolve(fileName.toString()).normalize().toAbsolutePath();
+                    log.info(String.format(resolvedPathText, resolvedPath));
                     if (!entry.isDirectory()) {
                         Files.copy(inputStream, resolvedPath,
                                 StandardCopyOption.REPLACE_EXISTING);
@@ -180,6 +180,11 @@ public class FileServiceImpl implements FileService {
         if (SeparatorConstants.ADDRESS_STREET_NUMBER <= addressList.length)
             address.append(addressList[SeparatorConstants.ADDRESS_STREET_NUMBER]);
 
+        City city =
+                bankBranch.getCities().stream()
+                        .filter(strapiCity -> strapiCity.getName().equals(bankDictionary.getCity()))
+                        .findFirst().get();
+
         return BankUnit.builder()
                 .name(bankDictionary.getName())
                 .h1(bankDictionary.getName())
@@ -191,6 +196,7 @@ public class FileServiceImpl implements FileService {
                 .workingHours(bankDictionary.getWorkingHours())
                 .telephones(bankDictionary.getTelephones())
                 .bankBranch(bankBranch.getId().toString())
+                .city(city)
                 .longId(bankDictionary.getId())
                 .build();
     }

@@ -6,7 +6,7 @@ import ru.bcs.creditmarkt.strapi.config.LogConfig;
 import ru.bcs.creditmarkt.strapi.dto.strapi.Bank;
 import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
 import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
-import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnitParent;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnitUpdate;
 
 import java.util.List;
 
@@ -25,13 +25,13 @@ public interface StrapiClient {
     BankBranch updateBankBranches(@PathVariable("id") Long id, @RequestBody BankBranch bankBranch);
 
     @GetMapping("/bank-units")
-    List<BankUnitParent> getBankUnits();
+    List<BankUnitUpdate> getBankUnits();
 
     @PostMapping("/bank-units")
     BankBranch createBankUnit(@RequestBody BankUnit bankUnit);
 
     @PutMapping("/bank-units/{id}")
-    BankUnitParent updateBankUnit(@PathVariable("id") Long id, @RequestBody BankUnitParent bankUnit);
+    BankUnitUpdate updateBankUnit(@PathVariable("id") Long id, @RequestBody BankUnitUpdate bankUnit);
 
     @PutMapping("banks/{id}")
     Bank updateBank(@PathVariable("id") Long id, @RequestBody Bank bank);
