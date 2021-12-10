@@ -21,5 +21,5 @@ public class BankUnit{
     private String telephones;
     private String longId;
     private String bankBranch;
-    private City city;
+    private Long city;
 }

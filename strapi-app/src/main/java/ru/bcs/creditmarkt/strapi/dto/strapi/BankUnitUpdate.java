@@ -19,4 +19,5 @@ public class BankUnitUpdate {
     private String workingHours;
     private String telephones;
     private String longId;
+    private City city;
 }

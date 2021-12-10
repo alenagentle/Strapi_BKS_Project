@@ -3,10 +3,7 @@ package ru.bcs.creditmarkt.strapi.client;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 import ru.bcs.creditmarkt.strapi.config.LogConfig;
-import ru.bcs.creditmarkt.strapi.dto.strapi.Bank;
-import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
-import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
-import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnitUpdate;
+import ru.bcs.creditmarkt.strapi.dto.strapi.*;
 
 import java.util.List;
 
@@ -20,6 +17,9 @@ public interface StrapiClient {
 
     @GetMapping("/banks")
     List<Bank> getBanks();
+
+    @GetMapping("/cities/{id}")
+    City getCityById(@PathVariable("id") Long id);
 
     @PutMapping("/bank-branches/{id}")
     BankBranch updateBankBranches(@PathVariable("id") Long id, @RequestBody BankBranch bankBranch);

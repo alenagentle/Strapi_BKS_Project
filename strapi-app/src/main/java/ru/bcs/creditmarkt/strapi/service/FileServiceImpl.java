@@ -139,7 +139,8 @@ public class FileServiceImpl implements FileService {
     private void filterByBankName(List<BankBranch> strapiBankBranches, BankDictionary bankDictionary, List<BankUnit> bankUnits) {
         AtomicInteger countNotFoundBank = new AtomicInteger();
         strapiBankBranches.forEach(bankBranch -> {
-            if (bankDictionary.getName().equals(bankBranch.getBank().getName())) {
+            if (StringUtils.toRootLowerCase(bankDictionary.getName())
+                    .equals(StringUtils.toRootLowerCase(bankBranch.getBank().getName()))) {
                 filterByCity(bankDictionary, bankBranch, bankUnits);
             } else
                 countNotFoundBank.getAndIncrement();
@@ -151,7 +152,8 @@ public class FileServiceImpl implements FileService {
     private void filterByCity(BankDictionary bankDictionary, BankBranch bankBranch, List<BankUnit> bankUnits) {
         AtomicInteger countNotFoundCity = new AtomicInteger();
         bankBranch.getCities().forEach(city -> {
-            if (city.getName().equals(bankDictionary.getCity())) {
+            if (StringUtils.toRootLowerCase(city.getName())
+                    .equals(StringUtils.toRootLowerCase(bankDictionary.getCity()))) {
                 filterByDate(bankDictionary, bankBranch, bankUnits);
             } else
                 countNotFoundCity.getAndIncrement();
@@ -182,8 +184,11 @@ public class FileServiceImpl implements FileService {
 
         City city =
                 bankBranch.getCities().stream()
-                        .filter(strapiCity -> strapiCity.getName().equals(bankDictionary.getCity()))
+                        .filter(strapiCity -> StringUtils.toRootLowerCase(strapiCity.getName())
+                                .equals(StringUtils.toRootLowerCase(bankDictionary.getCity())))
                         .findFirst().get();
+
+        System.out.println("city = " + city);
 
         return BankUnit.builder()
                 .name(bankDictionary.getName())
@@ -192,11 +197,12 @@ public class FileServiceImpl implements FileService {
                 .address(address.toString())
                 .latitude(bankDictionary.getLatitude().split(" ")[SeparatorConstants.LATITUDE])
                 .longitude(bankDictionary.getLongitude().split(" ")[SeparatorConstants.LONGITUDE])
-                .type(bankDictionary.getSubheading().contains(atmType) ? "atm" : "branch")
+                .type(StringUtils.toRootLowerCase(bankDictionary.getSubheading())
+                        .contains(atmType) ? "atm" : "branch")
                 .workingHours(bankDictionary.getWorkingHours())
                 .telephones(bankDictionary.getTelephones())
                 .bankBranch(bankBranch.getId().toString())
-                .city(city)
+                .city(city.getId())
                 .longId(bankDictionary.getId())
                 .build();
     }

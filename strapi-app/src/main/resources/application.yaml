@@ -27,8 +27,8 @@ partnerCardService:
 
   url: localhost:8080
 
-schedule-time: 0 0/2 * * * *
+schedule-time: 0 0/60 * * * *
 
 feign:
   log:
-    level: ${LOG_LEVEL_FEIGN:NONE}
+    level: ${LOG_LEVEL_FEIGN:FULL}
