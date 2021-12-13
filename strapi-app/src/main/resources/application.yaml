@@ -31,4 +31,4 @@ schedule-time: 0 0/60 * * * *
 
 feign:
   log:
-    level: ${LOG_LEVEL_FEIGN:FULL}
+    level: ${LOG_LEVEL_FEIGN:NONE}

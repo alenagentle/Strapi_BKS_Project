@@ -3,7 +3,6 @@ package ru.bcs.creditmarkt.strapi.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
@@ -27,6 +26,7 @@ import ru.bcs.creditmarkt.strapi.dto.wsco.response.nonamespace.CO;
 import ru.bcs.creditmarkt.strapi.dto.wsco.response.nonamespace.CreditOrganization;
 import ru.bcs.creditmarkt.strapi.dto.wsco.response.withnamespase.BicToIntCodeResponse;
 import ru.bcs.creditmarkt.strapi.dto.wsco.response.withnamespase.BicToRegNumberResponse;
+import ru.bcs.creditmarkt.strapi.utils.constants.Cases;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 
 import javax.xml.bind.JAXBContext;
@@ -38,6 +38,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,9 @@ public class BankServiceImpl implements BankService {
     private final StrapiClient strapiClient;
     private final WscoClient wscoClient;
     private final PhrasyClient phrasyClient;
+    private static final String[] EXCLUSION_LIST = {
+            "идея банк"
+    };
 
     //KB-10053
     //функция для обновление данных в страпи из цбрф
@@ -111,12 +115,11 @@ public class BankServiceImpl implements BankService {
                 CO.class, "CO");
 
         if (creditInfo != null) {
-
-            String name_ablt = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "ablt").getAblt();
-            String name_gent = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "gent").getGent();
-            String name_loct = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "loct").getLoct();
-            String name_datv = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "datv").getDatv();
-            String name_accs = phrasyClient.getInflectedPhrase(creditInfo.getOrgName(), "accs").getAccs();
+            StringBuilder name_ablt = getDeclinableName(creditInfo.getOrgName(), Cases.ABLATIVE_CASE);
+            StringBuilder name_gent = getDeclinableName(creditInfo.getOrgName(), Cases.GENITIVE_CASE);
+            StringBuilder name_loct = getDeclinableName(creditInfo.getOrgName(), Cases.PREPOSITIONAL_CASE);
+            StringBuilder name_datv = getDeclinableName(creditInfo.getOrgName(), Cases.DATIVE_CASE);
+            StringBuilder name_accs = getDeclinableName(creditInfo.getOrgName(), Cases.ACCUSATIVE_CASE);
 
             bank.setSlug(strapiBank.getSlug());
             bank.setLetterBank(Character.toString(creditInfo.getOrgName().charAt(0)));
@@ -128,22 +131,80 @@ public class BankServiceImpl implements BankService {
             bank.setSystemParticipation(creditInfo.getSsvDate());
             bank.setIsLicenseActive(creditInfo.getOrgStatus().equals("норм."));
             bank.setLeadership(creditInfo.getIsRBFileExist());
-            bank.setName_ablt(name_ablt);
-            bank.setName_gent(name_gent);
-            bank.setName_loct(name_loct);
-            bank.setName_datv(name_datv);
-            bank.setName_accs(name_accs);
+            bank.setName_ablt(name_ablt.toString());
+            bank.setName_gent(name_gent.toString());
+            bank.setName_loct(name_loct.toString());
+            bank.setName_datv(name_datv.toString());
+            bank.setName_accs(name_accs.toString());
             meta.setDescription(creditInfo.getOrgName());
             meta.setOgDescription(creditInfo.getOrgName());
             meta.setOgTitle(creditInfo.getOrgName());
             meta.setTitle(creditInfo.getOrgName());
             bank.setH1(creditInfo.getOrgName());
             bank.setMeta(meta);
+            bank.setName(creditInfo.getOrgName());
         }
 
-        bank.setName(strapiBank.getName());
         bank.setBic(creditOrg.getBic());
         return bank;
+    }
+
+    private StringBuilder getDeclinableName(String originalName, String phrase) {
+        StringBuilder totalName = new StringBuilder("");
+        StringBuilder partOfDeclinableName = new StringBuilder("");
+        if (Arrays.stream(EXCLUSION_LIST).anyMatch(exclusion ->
+                StringUtils.toRootLowerCase(originalName).equals(exclusion))) {
+            int indexOfSpace = originalName.indexOf(" ");
+            partOfDeclinableName.append(originalName.substring(indexOfSpace));
+            totalName.append(originalName, 0, indexOfSpace).append(" ");
+        } else
+            partOfDeclinableName.append(originalName);
+
+        switch (phrase) {
+            case (Cases.ABLATIVE_CASE):
+                totalName.append(phrasyClient.getDeclinablePhrase(partOfDeclinableName.toString(), phrase).getAblt());
+                break;
+            case (Cases.GENITIVE_CASE):
+                totalName.append(phrasyClient.getDeclinablePhrase(partOfDeclinableName.toString(), phrase).getGent());
+                break;
+            case (Cases.PREPOSITIONAL_CASE):
+                totalName.append(phrasyClient.getDeclinablePhrase(partOfDeclinableName.toString(), phrase).getLoct());
+                break;
+            case (Cases.DATIVE_CASE):
+                totalName.append(phrasyClient.getDeclinablePhrase(partOfDeclinableName.toString(), phrase).getDatv());
+                break;
+            case (Cases.ACCUSATIVE_CASE):
+                totalName.append(phrasyClient.getDeclinablePhrase(partOfDeclinableName.toString(), phrase).getAccs());
+                break;
+        }
+        return setRegister(originalName, totalName);
+    }
+
+    private StringBuilder setRegister(String originalName, StringBuilder declinableName) {
+
+        int upperCaseCount = 0;
+        for (int i = 0; i < originalName.length(); i++) {
+            for (int j = i; j < declinableName.length(); j++) {
+                if (StringUtils.toRootLowerCase(String.valueOf(originalName.charAt(i)))
+                        .equals(StringUtils.toRootLowerCase(String.valueOf(declinableName.charAt(j))))) {
+
+                    if (Character.isUpperCase(originalName.charAt(i))) {
+                        declinableName.setCharAt(j, Character.toUpperCase(declinableName.charAt(j)));
+                        upperCaseCount++;
+                    }
+                    break;
+                }
+            }
+        }
+        int lengthWithoutSpaces = originalName.replaceAll("\\s+", "").length();
+        int lengthWithoutEndAndSpaces = lengthWithoutSpaces - 1;
+
+        if (upperCaseCount == lengthWithoutSpaces || upperCaseCount == lengthWithoutEndAndSpaces) {
+            for (int i = 0; i < declinableName.length(); i++) {
+                declinableName.setCharAt(i, Character.toUpperCase(declinableName.charAt(i)));
+            }
+        }
+        return  declinableName;
     }
 
     //KB-10053

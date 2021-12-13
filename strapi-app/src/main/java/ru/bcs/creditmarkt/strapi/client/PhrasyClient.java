@@ -14,7 +14,7 @@ public interface PhrasyClient {
 
     @GetMapping(value = "/inflect",
             produces = MediaType.APPLICATION_JSON_VALUE)
-    Phrasy getInflectedPhrase(@RequestParam String phrase,
-                              @RequestParam String forms);
+    Phrasy getDeclinablePhrase(@RequestParam String phrase,
+                               @RequestParam String forms);
 
 }
