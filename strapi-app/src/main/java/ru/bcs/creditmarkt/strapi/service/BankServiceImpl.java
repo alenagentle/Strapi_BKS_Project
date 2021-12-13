@@ -3,6 +3,7 @@ package ru.bcs.creditmarkt.strapi.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
@@ -10,7 +11,6 @@ import ru.bcs.creditmarkt.strapi.client.PhrasyClient;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.client.WscoClient;
 import ru.bcs.creditmarkt.strapi.dto.strapi.Bank;
-import ru.bcs.creditmarkt.strapi.dto.strapi.Meta;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.BodyCreditInfoByIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.CreditInfoByIntCodeRequest;
 import ru.bcs.creditmarkt.strapi.dto.wsco.request.creditinfo.EnvelopCreditInfoByIntCodeRequest;
@@ -53,6 +53,8 @@ public class BankServiceImpl implements BankService {
     private static final String[] EXCLUSION_LIST = {
             "идея банк"
     };
+    @Value("${partnerCardService.licenseLink}")
+    private String link;
 
     //KB-10053
     //функция для обновление данных в страпи из цбрф
@@ -99,7 +101,6 @@ public class BankServiceImpl implements BankService {
 
     private Bank getBankWithFieldsFromCreditOrg(CreditOrganization creditOrg, Bank strapiBank) {
         Bank bank = new Bank();
-        Meta meta = new Meta();
         bank.setId(strapiBank.getId());
         BicToIntCodeResponse bicToIntCodeResponse = getObjectResponse(wscoClient.bicToIntCode(getEnvelopBicToIntCode(creditOrg.getBic())),
                 BicToIntCodeResponse.class, "BicToIntCodeResponse");
@@ -136,13 +137,10 @@ public class BankServiceImpl implements BankService {
             bank.setName_loct(name_loct.toString());
             bank.setName_datv(name_datv.toString());
             bank.setName_accs(name_accs.toString());
-            meta.setDescription(creditInfo.getOrgName());
-            meta.setOgDescription(creditInfo.getOrgName());
-            meta.setOgTitle(creditInfo.getOrgName());
-            meta.setTitle(creditInfo.getOrgName());
             bank.setH1(creditInfo.getOrgName());
-            bank.setMeta(meta);
             bank.setName(creditInfo.getOrgName());
+            bank.setLegalAddress(creditInfo.getUstavAdr());
+            bank.setLicenseLink(link + creditInfo.getIntCode());
         }
 
         bank.setBic(creditOrg.getBic());

@@ -17,7 +17,10 @@ public class BankUnitUpdate {
     private String latitude;
     private String type;
     private String workingHours;
+    private String workHours;
     private String telephones;
     private String longId;
     private City city;
+    private boolean refill;
+    private boolean cashReceipt;
 }

@@ -18,8 +18,11 @@ public class BankUnit{
     private String latitude;
     private String type;
     private String workingHours;
+    private String workHours;
     private String telephones;
     private String longId;
     private String bankBranch;
     private Long city;
+    private boolean refill;
+    private boolean cashReceipt;
 }

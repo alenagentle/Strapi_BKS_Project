@@ -1,6 +1,5 @@
 package ru.bcs.creditmarkt.strapi.service;
 
-import com.ibm.icu.text.Transliterator;
 import com.poiji.bind.Poiji;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,14 +24,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -169,10 +163,6 @@ public class FileServiceImpl implements FileService {
     }
 
     private BankUnit getBankUnit(BankBranch bankBranch, BankDictionary bankDictionary) {
-        Transliterator russianToLatin = Transliterator.getInstance(RUSSIAN_TO_LATIN);
-        StringBuilder slug = new StringBuilder(StringUtils.toRootLowerCase(russianToLatin.transliterate(bankDictionary.getName())));
-        Pattern pattern = Pattern.compile("[^A-za-z]");
-        Matcher matcher = pattern.matcher(slug);
         String atmType = StringUtils.toRootLowerCase(messageBundle.getString("atm"));
         StringBuilder address = new StringBuilder(bankDictionary.getCity());
         address.append(", ");
@@ -188,22 +178,28 @@ public class FileServiceImpl implements FileService {
                                 .equals(StringUtils.toRootLowerCase(bankDictionary.getCity())))
                         .findFirst().get();
 
-        System.out.println("city = " + city);
+        String[] workHoursArray = bankDictionary.getWorkingHours().split(";");
+        StringBuilder workHours = new StringBuilder("");
+        Arrays.stream(workHoursArray)
+                .forEach(time -> workHours.append(time).append("\n"));
 
         return BankUnit.builder()
                 .name(bankDictionary.getName())
-                .h1(bankDictionary.getName())
-                .slug(matcher.replaceAll(""))
+                .h1(bankDictionary.getH1())
+                .slug(bankDictionary.getSlug())
                 .address(address.toString())
                 .latitude(bankDictionary.getLatitude().split(" ")[SeparatorConstants.LATITUDE])
                 .longitude(bankDictionary.getLongitude().split(" ")[SeparatorConstants.LONGITUDE])
                 .type(StringUtils.toRootLowerCase(bankDictionary.getSubheading())
                         .contains(atmType) ? "atm" : "branch")
                 .workingHours(bankDictionary.getWorkingHours())
+                .workHours(workHours.toString())
                 .telephones(bankDictionary.getTelephones())
                 .bankBranch(bankBranch.getId().toString())
                 .city(city.getId())
                 .longId(bankDictionary.getId())
+                .refill(bankDictionary.isRefill())
+                .cashReceipt(bankDictionary.isCashReceipt())
                 .build();
     }
 

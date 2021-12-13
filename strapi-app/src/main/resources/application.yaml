@@ -27,7 +27,9 @@ partnerCardService:
 
   url: localhost:8080
 
-schedule-time: 0 0/60 * * * *
+  licenseLink: https://www.cbr.ru/banking_sector/credit/coinfo/?id=
+
+schedule-time: 0 0/1 * * * *
 
 feign:
   log:

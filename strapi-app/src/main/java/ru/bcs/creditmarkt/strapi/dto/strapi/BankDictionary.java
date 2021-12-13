@@ -29,4 +29,14 @@ public class BankDictionary {
     private String workingHours;
     @ExcelCellName("Телефон")
     private String telephones;
+
+    @ExcelCellName("Refill")
+    private boolean refill;
+    @ExcelCellName("CashReceipt")
+    private boolean cashReceipt;
+
+    @ExcelCellName("Slug")
+    private String slug;
+    @ExcelCellName("h1")
+    private String h1;
 }
