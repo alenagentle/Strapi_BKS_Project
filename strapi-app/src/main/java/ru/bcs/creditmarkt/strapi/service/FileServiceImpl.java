@@ -4,6 +4,7 @@ import com.poiji.bind.Poiji;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,12 +13,18 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.dto.strapi.*;
 import ru.bcs.creditmarkt.strapi.exception.FileFormatException;
+import ru.bcs.creditmarkt.strapi.exception.NotFoundException;
 import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import javax.validation.Valid;
+import javax.validation.Validator;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,10 +48,12 @@ public class FileServiceImpl implements FileService {
 
     private final StrapiClient strapiClient;
     private final ResourceBundle messageBundle = Localization.getMessageBundle();
-    private static final String RUSSIAN_TO_LATIN = "Russian-Latin/BGN";
     private final SimpleDateFormat dateFormatWithMin = new SimpleDateFormat(messageBundle.getString("time.format.min"));
     private final SimpleDateFormat dateFormatWithMs = new SimpleDateFormat(messageBundle.getString("time.format.ms"));
     private final String resolvedPathText = "resolvedPath - %s";
+
+    @Autowired
+    private Validator validator;
 
     public ResponseEntity<String> manageBankUnits(List<MultipartFile> multipartFileList) {
         List<BankUnit> bankUnits = new ArrayList<>();
@@ -53,6 +62,7 @@ public class FileServiceImpl implements FileService {
 
         List<Path> pathList = loadXlsFileList(multipartFileList);
         readXlsFileList(pathList, bankUnits, bankDictionaries);
+
         updateBankUnit(bankUnits, updatedBankUnits);
         updatedBankUnits.forEach(bankUnits::remove);
         bankUnits.forEach(strapiClient::createBankUnit);
@@ -93,10 +103,11 @@ public class FileServiceImpl implements FileService {
             String extension = Objects.requireNonNull(originalFileName).substring(originalFileName.lastIndexOf("."));
             if (!extension.equals(".zip"))
                 throw new FileFormatException(messageBundle.getString("text.formatRequired"));
-            try (ZipInputStream inputStream = new ZipInputStream(file.getInputStream())) {
+            try (ZipInputStream inputStream = new ZipInputStream(file.getInputStream(), Charset.forName("CP866"))) {
                 Path rootLocation = Paths.get(filePath);
                 for (ZipEntry entry; (entry = inputStream.getNextEntry()) != null; ) {
                     StringBuilder fileName = new StringBuilder(dateFormatWithMs.format(new Timestamp(System.currentTimeMillis())));
+                    System.out.println("fileName = " + fileName);
                     fileName.append(entry.getName());
                     Path resolvedPath = rootLocation.resolve(fileName.toString()).normalize().toAbsolutePath();
                     log.info(String.format(resolvedPathText, resolvedPath));
@@ -119,28 +130,54 @@ public class FileServiceImpl implements FileService {
         if (Files.exists(path)) {
             File file = new File(path.toString());
             bankDictionaries = Poiji.fromExcel(file, BankDictionary.class);
+            validateBankDictionaries(bankDictionaries);
         }
         return bankDictionaries;
     }
 
-    private void filterBankBranches(List<BankDictionary> bankDictionaries, List<BankUnit> bankUnits) {
-        List<BankBranch> strapiBankBranches = strapiClient.getBankBranches();
+    private void validateBankDictionaries(List<BankDictionary> bankDictionaries) {
         bankDictionaries.forEach(bankDictionary -> {
-            filterByBankName(strapiBankBranches, bankDictionary, bankUnits);
+            Set<ConstraintViolation<BankDictionary>> violations = validator.validate(bankDictionary);
+            if (!violations.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                for (ConstraintViolation<BankDictionary> constraintViolation : violations) {
+                    sb.append(constraintViolation.getMessage())
+                            .append(messageBundle.getString("for.bank"))
+                            .append(bankDictionary.getName());
+                }
+                throw new ConstraintViolationException(sb.toString(), violations);
+            }
         });
     }
 
-    private void filterByBankName(List<BankBranch> strapiBankBranches, BankDictionary bankDictionary, List<BankUnit> bankUnits) {
+    private void filterBankBranches(List<BankDictionary> bankDictionaries, List<BankUnit> bankUnits) {
+        List<BankBranch> strapiBankBranches = strapiClient.getBankBranches();
+        bankDictionaries.forEach(bankDictionary ->
+                filterByBic(strapiBankBranches, bankDictionary, bankUnits));
+    }
+
+    private void filterByBic(List<BankBranch> strapiBankBranches, BankDictionary bankDictionary, List<BankUnit> bankUnits) {
+        System.out.println("filterByBic");
         AtomicInteger countNotFoundBank = new AtomicInteger();
         strapiBankBranches.forEach(bankBranch -> {
-            if (StringUtils.toRootLowerCase(bankDictionary.getName())
-                    .equals(StringUtils.toRootLowerCase(bankBranch.getBank().getName()))) {
-                filterByCity(bankDictionary, bankBranch, bankUnits);
+            if (bankBranch.getBic() != null && bankBranch.getBic().equals(bankDictionary.getBic())) {
+                System.out.println("equals by bic: " + bankDictionary.getBic());
+                bankUnits.add(getBankUnit(bankBranch, bankDictionary));
             } else
-                countNotFoundBank.getAndIncrement();
+                filterByBankName(bankBranch, bankDictionary, bankUnits, countNotFoundBank);
         });
         if (countNotFoundBank.intValue() == strapiBankBranches.size())
             log.warn(String.format(messageBundle.getString("bank.notFoundWithName"), bankDictionary.getName()));
+    }
+
+    private void filterByBankName(BankBranch bankBranch, BankDictionary bankDictionary,
+                                  List<BankUnit> bankUnits, AtomicInteger countNotFoundBank) {
+        if (StringUtils.toRootLowerCase(bankDictionary.getName())
+                .equals(StringUtils.toRootLowerCase(bankBranch.getBank().getName()))) {
+            System.out.println("equals by name: " + bankDictionary.getName());
+            filterByCity(bankDictionary, bankBranch, bankUnits);
+        } else
+            countNotFoundBank.getAndIncrement();
     }
 
     private void filterByCity(BankDictionary bankDictionary, BankBranch bankBranch, List<BankUnit> bankUnits) {
@@ -148,7 +185,8 @@ public class FileServiceImpl implements FileService {
         bankBranch.getCities().forEach(city -> {
             if (StringUtils.toRootLowerCase(city.getName())
                     .equals(StringUtils.toRootLowerCase(bankDictionary.getCity()))) {
-                filterByDate(bankDictionary, bankBranch, bankUnits);
+                System.out.println("equals by city: " + bankDictionary.getCity());
+                bankUnits.add(getBankUnit(bankBranch, bankDictionary));
             } else
                 countNotFoundCity.getAndIncrement();
         });
@@ -167,21 +205,25 @@ public class FileServiceImpl implements FileService {
         StringBuilder address = new StringBuilder(bankDictionary.getCity());
         address.append(", ");
         String[] addressList = bankDictionary.getAddress().split(",");
-        if (SeparatorConstants.ADDRESS_STREET <= addressList.length)
+        System.out.println("addressList.length = " + addressList.length + " bankDictionary.getId() = " + bankDictionary.getId());
+        if (SeparatorConstants.ADDRESS_STREET < addressList.length)
             address.append(addressList[SeparatorConstants.ADDRESS_STREET]);
-        if (SeparatorConstants.ADDRESS_STREET_NUMBER <= addressList.length)
+        if (SeparatorConstants.ADDRESS_STREET_NUMBER < addressList.length)
             address.append(addressList[SeparatorConstants.ADDRESS_STREET_NUMBER]);
 
         City city =
                 bankBranch.getCities().stream()
                         .filter(strapiCity -> StringUtils.toRootLowerCase(strapiCity.getName())
                                 .equals(StringUtils.toRootLowerCase(bankDictionary.getCity())))
-                        .findFirst().get();
+                        .findFirst().orElseThrow(() -> new NotFoundException(String.format(messageBundle
+                                .getString("town.notFound"), bankDictionary.getCity())));
 
-        String[] workHoursArray = bankDictionary.getWorkingHours().split(";");
         StringBuilder workHours = new StringBuilder("");
-        Arrays.stream(workHoursArray)
-                .forEach(time -> workHours.append(time).append("\n"));
+        if (bankDictionary.getWorkingHours() != null) {
+            String[] workHoursArray = workHoursArray = bankDictionary.getWorkingHours().split(";");
+            Arrays.stream(workHoursArray)
+                    .forEach(time -> workHours.append(time).append("\n"));
+        }
 
         return BankUnit.builder()
                 .name(bankDictionary.getName())

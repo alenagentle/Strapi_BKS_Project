@@ -1,9 +1,17 @@
 server:
   port: ${HTTP_PORT:8080}
+  tomcat:
+    max-swallow-size: -1
+    max-http-form-post-size: -1
 
 spring:
   application:
     name: partner-card-service
+
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 1MB
 
 logging:
   level:
@@ -29,7 +37,7 @@ partnerCardService:
 
   licenseLink: https://www.cbr.ru/banking_sector/credit/coinfo/?id=
 
-schedule-time: 0 0/1 * * * *
+schedule-time: 0 0/60 * * * *
 
 feign:
   log:

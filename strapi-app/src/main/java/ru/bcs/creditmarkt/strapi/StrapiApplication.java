@@ -23,6 +23,9 @@ public class StrapiApplication {
     public static void main(String[] args) {
         SpringApplication.run(StrapiApplication.class, args);
 
+        System.out.println("os name = " + System.getProperty("os.name"));
+//        System.getProperties().list(System.out);
+
 
 //        String originalName = "АЛЬТЕРНАТИВА";
 //        StringBuilder inflectiveName = new StringBuilder("альтернативой");
