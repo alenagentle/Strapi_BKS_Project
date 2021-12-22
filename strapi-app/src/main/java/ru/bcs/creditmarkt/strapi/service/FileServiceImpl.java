@@ -12,7 +12,9 @@ import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.exception.FileFormatException;
 import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
 import ru.bcs.creditmarkt.strapi.thread.BankUnitThread;
+import ru.bcs.creditmarkt.strapi.thread.BankUnitThreadExecutor;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
+import ru.bcs.creditmarkt.strapi.utils.constants.Queue;
 
 import javax.validation.Validator;
 import java.io.IOException;
@@ -42,23 +44,14 @@ public class FileServiceImpl implements FileService {
 
     @Value("${file-path}")
     private String filePath;
-    private final BankUnitMapper mapper;
-    private final StrapiClient strapiClient;
     private final ResourceBundle messageBundle = Localization.getMessageBundle();
     private final SimpleDateFormat dateFormatWithMs = new SimpleDateFormat(messageBundle.getString("time.format.ms"));
     private final String resolvedPathText = "resolvedPath - %s";
 
-    private BlockingQueue<Path> fileReferencesQueue = new LinkedBlockingDeque<>();
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
-
-    @Autowired
-    private Validator validator;
 
     public ResponseEntity<String> manageBankUnits(List<MultipartFile> multipartFileList) {
         List<Path> pathList = loadXlsFileList(multipartFileList);
-        fileReferencesQueue.addAll(pathList);
-        BankUnitThread bankUnitThread = new BankUnitThread(mapper, strapiClient, validator, fileReferencesQueue);
-        executor.submit(bankUnitThread);
+        Queue.fileReferencesQueue.addAll(pathList);
         return new ResponseEntity<>("file uploaded", HttpStatus.OK);
     }
 

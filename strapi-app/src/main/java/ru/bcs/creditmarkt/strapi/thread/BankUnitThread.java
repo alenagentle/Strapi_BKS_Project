@@ -52,11 +52,21 @@ public class BankUnitThread implements Runnable {
     public void run() {
         try {
             System.out.println("вошли в run, проверяем не пустая ли очередь fileReferencesQueue");
-            while (!fileReferencesQueue.isEmpty()) {
-                System.out.println("fileReferencesQueue не пустая");
-                Path path = fileReferencesQueue.take();
-                System.out.println("path из очереди = " + path.toString());
-                manageBankUnits(path);
+//            while (!fileReferencesQueue.isEmpty()) {
+//                System.out.println("fileReferencesQueue не пустая");
+//                Path path = fileReferencesQueue.take();
+//                System.out.println("path из очереди = " + path.toString());
+//                manageBankUnits(path);
+//            }
+
+            while (true) {
+                Thread.sleep(2000);
+                if (!fileReferencesQueue.isEmpty()) {
+                    System.out.println("fileReferencesQueue не пустая");
+                    Path path = fileReferencesQueue.take();
+                    System.out.println("path из очереди = " + path.toString());
+                    manageBankUnits(path);
+                }
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -86,36 +96,6 @@ public class BankUnitThread implements Runnable {
 
     }
 
-
-//    private List<Path> loadXlsFileList(List<MultipartFile> multipartFileList) {
-//        List<Path> pathList = new ArrayList<>();
-//        for (MultipartFile file : multipartFileList) {
-//            String originalFileName = file.getOriginalFilename();
-//            String extension = Objects.requireNonNull(originalFileName).substring(originalFileName.lastIndexOf("."));
-//            if (!extension.equals(".zip"))
-//                throw new FileFormatException(messageBundle.getString("text.formatRequired"));
-//            try (ZipInputStream inputStream = new ZipInputStream(file.getInputStream(), Charset.forName("CP866"))) {
-//                Path rootLocation = Paths.get(filePath);
-//                for (ZipEntry entry; (entry = inputStream.getNextEntry()) != null; ) {
-//                    StringBuilder fileName = new StringBuilder(dateFormatWithMs.format(new Timestamp(System.currentTimeMillis())));
-//                    fileName.append(entry.getName());
-//                    Path resolvedPath = rootLocation.resolve(fileName.toString()).normalize().toAbsolutePath();
-//                    System.out.println("resolvedPath = " + resolvedPath);
-//                    log.info(String.format(resolvedPathText, resolvedPath));
-//                    if (!entry.isDirectory()) {
-//                        Files.copy(inputStream, resolvedPath,
-//                                StandardCopyOption.REPLACE_EXISTING);
-//                        pathList.add(resolvedPath);
-//                    }
-//                }
-//                inputStream.closeEntry();
-//            } catch (IOException e) {
-//                log.error(e.getMessage());
-//            }
-//        }
-//        return pathList;
-//    }
-
     private void updateBankUnit(List<BankUnit> bankUnits, Set<BankUnit> updatedBankUnits) {
         int limit = 500;
         int startPosition = 0;
@@ -136,15 +116,14 @@ public class BankUnitThread implements Runnable {
                     }
                 });
             });
-            System.out.println("bankUnitUpdatePaginationList.size() = " + bankUnitUpdatePaginationList.size());
-            System.out.println("updatedBankUnits.size() = " + updatedBankUnits.size());
+//            System.out.println("bankUnitUpdatePaginationList.size() = " + bankUnitUpdatePaginationList.size());
+//            System.out.println("updatedBankUnits.size() = " + updatedBankUnits.size());
             startPosition += limit;
             bankUnitUpdatePaginationList = strapiClient.getPaginationBankUnits(limit, startPosition, SortConstants.SORT_ID);
         }
     }
 
     private void readXlsFileList(Path path, List<BankUnit> bankUnits, AtomicReference<List<BankDictionary>> bankDictionaries) {
-//        pathList.forEach(path -> {
         bankDictionaries.set(readXlsFile(path));
         filterBankBranches(bankDictionaries.get(), bankUnits);
         if (Files.exists(path)) {
@@ -154,7 +133,6 @@ public class BankUnitThread implements Runnable {
                 log.error(e.getMessage());
             }
         }
-//        });
     }
 
     private List<BankDictionary> readXlsFile(Path path) {
@@ -185,9 +163,7 @@ public class BankUnitThread implements Runnable {
     }
 
     private void filterBankBranches(List<BankDictionary> bankDictionaries, List<BankUnit> bankUnits) {
-//        System.out.println("filterBankBranches");
         List<BankBranch> strapiBankBranches = strapiClient.getBankBranches();
-
         bankDictionaries.forEach(bankDictionary ->
                 filterByBic(strapiBankBranches, bankDictionary, bankUnits));
 //        notFoundBanks.forEach(log::warn);
