@@ -13,6 +13,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import ru.bcs.creditmarkt.strapi.config.LogConfig;
 import ru.bcs.creditmarkt.strapi.config.EncoderConfig;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @SpringBootApplication
 @EnableFeignClients
 @EnableScheduling
@@ -22,8 +25,25 @@ public class StrapiApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(StrapiApplication.class, args);
+//
+//        List<String> stringList = new ArrayList<>();
+//        stringList.add("0");
+//        stringList.add("1");
+//        stringList.add("2");
+//        stringList.add("3");
+//        stringList.add("4");
+//        stringList.add("5");
+//        stringList.add("6");
+//
+//        System.out.println("stringList1.size() = " + stringList.size());
+//        for (int i = 0; i < stringList.size(); i++) {
+//            System.out.println(stringList.get(i));
+//            stringList.remove(stringList.get(i));
+//        }
+//        System.out.println("stringList2.size() = " + stringList.size());
 
-        System.out.println("os name = " + System.getProperty("os.name"));
+
+//        System.out.println("os name = " + System.getProperty("os.name"));
 //        System.getProperties().list(System.out);
 
 

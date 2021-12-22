@@ -2,6 +2,7 @@ package ru.bcs.creditmarkt.strapi.exception;
 
 import com.poiji.exception.HeaderMissingException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.fileupload.impl.SizeLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -39,5 +40,13 @@ public class AppExceptionHandler {
         log.error(e.getMessage());
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler({SizeLimitExceededException.class})
+    protected ResponseEntity<Object> handleNotFoundException(SizeLimitExceededException e) {
+        ApiError apiError = new ApiError(e.getMessage());
+        log.error(e.getMessage());
+        return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    }
+
 
 }

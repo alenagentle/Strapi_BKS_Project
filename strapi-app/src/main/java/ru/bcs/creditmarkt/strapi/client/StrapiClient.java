@@ -27,6 +27,11 @@ public interface StrapiClient {
     @GetMapping("/bank-units")
     List<BankUnitUpdate> getBankUnits();
 
+    @GetMapping("/bank-units")
+    List<BankUnitUpdate> getPaginationBankUnits(@RequestParam("_limit") int limit,
+                                                @RequestParam("_start") int start,
+                                                @RequestParam("_sort") String sort);
+
     @PostMapping("/bank-units")
     BankBranch createBankUnit(@RequestBody BankUnit bankUnit);
 
