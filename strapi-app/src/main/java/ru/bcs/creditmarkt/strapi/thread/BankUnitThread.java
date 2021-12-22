@@ -1,12 +1,10 @@
-package ru.bcs.creditmarkt.strapi.service;
+package ru.bcs.creditmarkt.strapi.thread;
 
 import com.poiji.bind.Poiji;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.dto.strapi.*;
-import ru.bcs.creditmarkt.strapi.exception.FileFormatException;
 import ru.bcs.creditmarkt.strapi.exception.NotFoundException;
 import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
@@ -18,18 +16,13 @@ import javax.validation.ConstraintViolationException;
 import javax.validation.Validator;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 @Slf4j
 public class BankUnitThread implements Runnable {
@@ -37,42 +30,47 @@ public class BankUnitThread implements Runnable {
     private final BankUnitMapper mapper;
     private final StrapiClient strapiClient;
     private final Validator validator;
-    private final List<MultipartFile> multipartFileList;
-    private final String filePath;
+    private BlockingQueue<Path> fileReferencesQueue;
 
     private final ResourceBundle messageBundle = Localization.getMessageBundle();
     private final SimpleDateFormat dateFormatWithMin = new SimpleDateFormat(messageBundle.getString("time.format.min"));
-    private final SimpleDateFormat dateFormatWithMs = new SimpleDateFormat(messageBundle.getString("time.format.ms"));
-    private final String resolvedPathText = "resolvedPath - %s";
 
     private Set<String> notFoundBanks = new HashSet<>();
     private Set<String> notFoundCities = new HashSet<>();
 
-    public BankUnitThread(List<MultipartFile> multipartFileList,
-                          BankUnitMapper mapper,
+    public BankUnitThread(BankUnitMapper mapper,
                           StrapiClient strapiClient,
                           Validator validator,
-                          String filePath) {
+                          BlockingQueue<Path> fileReferencesQueue) {
         this.mapper = mapper;
         this.strapiClient = strapiClient;
         this.validator = validator;
-        this.multipartFileList = multipartFileList;
-        this.filePath = filePath;
+        this.fileReferencesQueue = fileReferencesQueue;
     }
-
 
     @Override
     public void run() {
-        manageBankUnits(multipartFileList);
+        try {
+            System.out.println("вошли в run, проверяем не пустая ли очередь fileReferencesQueue");
+            while (!fileReferencesQueue.isEmpty()) {
+                System.out.println("fileReferencesQueue не пустая");
+                Path path = fileReferencesQueue.take();
+                System.out.println("path из очереди = " + path.toString());
+                manageBankUnits(path);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 
-    private void manageBankUnits(List<MultipartFile> multipartFileList) {
+    private void manageBankUnits(Path path) {
+        System.out.println("manageBankUnits ...");
         List<BankUnit> bankUnits = new ArrayList<>();
         AtomicReference<List<BankDictionary>> bankDictionaries = new AtomicReference<>();
         Set<BankUnit> updatedBankUnits = new HashSet<>();
-        List<Path> pathList = loadXlsFileList(multipartFileList);
 
-        readXlsFileList(pathList, bankUnits, bankDictionaries);
+        readXlsFileList(path, bankUnits, bankDictionaries);
         System.out.println("bankUnits.size()1 = " + bankUnits.size());
 
         updateBankUnit(bankUnits, updatedBankUnits);
@@ -89,34 +87,34 @@ public class BankUnitThread implements Runnable {
     }
 
 
-    private List<Path> loadXlsFileList(List<MultipartFile> multipartFileList) {
-        List<Path> pathList = new ArrayList<>();
-        for (MultipartFile file : multipartFileList) {
-            String originalFileName = file.getOriginalFilename();
-            String extension = Objects.requireNonNull(originalFileName).substring(originalFileName.lastIndexOf("."));
-            if (!extension.equals(".zip"))
-                throw new FileFormatException(messageBundle.getString("text.formatRequired"));
-            try (ZipInputStream inputStream = new ZipInputStream(file.getInputStream(), Charset.forName("CP866"))) {
-                Path rootLocation = Paths.get(filePath);
-                for (ZipEntry entry; (entry = inputStream.getNextEntry()) != null; ) {
-                    StringBuilder fileName = new StringBuilder(dateFormatWithMs.format(new Timestamp(System.currentTimeMillis())));
-                    fileName.append(entry.getName());
-                    Path resolvedPath = rootLocation.resolve(fileName.toString()).normalize().toAbsolutePath();
-                    System.out.println("resolvedPath = " + resolvedPath);
-                    log.info(String.format(resolvedPathText, resolvedPath));
-                    if (!entry.isDirectory()) {
-                        Files.copy(inputStream, resolvedPath,
-                                StandardCopyOption.REPLACE_EXISTING);
-                        pathList.add(resolvedPath);
-                    }
-                }
-                inputStream.closeEntry();
-            } catch (IOException e) {
-                log.error(e.getMessage());
-            }
-        }
-        return pathList;
-    }
+//    private List<Path> loadXlsFileList(List<MultipartFile> multipartFileList) {
+//        List<Path> pathList = new ArrayList<>();
+//        for (MultipartFile file : multipartFileList) {
+//            String originalFileName = file.getOriginalFilename();
+//            String extension = Objects.requireNonNull(originalFileName).substring(originalFileName.lastIndexOf("."));
+//            if (!extension.equals(".zip"))
+//                throw new FileFormatException(messageBundle.getString("text.formatRequired"));
+//            try (ZipInputStream inputStream = new ZipInputStream(file.getInputStream(), Charset.forName("CP866"))) {
+//                Path rootLocation = Paths.get(filePath);
+//                for (ZipEntry entry; (entry = inputStream.getNextEntry()) != null; ) {
+//                    StringBuilder fileName = new StringBuilder(dateFormatWithMs.format(new Timestamp(System.currentTimeMillis())));
+//                    fileName.append(entry.getName());
+//                    Path resolvedPath = rootLocation.resolve(fileName.toString()).normalize().toAbsolutePath();
+//                    System.out.println("resolvedPath = " + resolvedPath);
+//                    log.info(String.format(resolvedPathText, resolvedPath));
+//                    if (!entry.isDirectory()) {
+//                        Files.copy(inputStream, resolvedPath,
+//                                StandardCopyOption.REPLACE_EXISTING);
+//                        pathList.add(resolvedPath);
+//                    }
+//                }
+//                inputStream.closeEntry();
+//            } catch (IOException e) {
+//                log.error(e.getMessage());
+//            }
+//        }
+//        return pathList;
+//    }
 
     private void updateBankUnit(List<BankUnit> bankUnits, Set<BankUnit> updatedBankUnits) {
         int limit = 500;
@@ -145,18 +143,18 @@ public class BankUnitThread implements Runnable {
         }
     }
 
-    private void readXlsFileList(List<Path> pathList, List<BankUnit> bankUnits, AtomicReference<List<BankDictionary>> bankDictionaries) {
-        pathList.forEach(path -> {
-            bankDictionaries.set(readXlsFile(path));
-            filterBankBranches(bankDictionaries.get(), bankUnits);
-            if (Files.exists(path)) {
-                try {
-                    Files.delete(path);
-                } catch (IOException e) {
-                    log.error(e.getMessage());
-                }
+    private void readXlsFileList(Path path, List<BankUnit> bankUnits, AtomicReference<List<BankDictionary>> bankDictionaries) {
+//        pathList.forEach(path -> {
+        bankDictionaries.set(readXlsFile(path));
+        filterBankBranches(bankDictionaries.get(), bankUnits);
+        if (Files.exists(path)) {
+            try {
+                Files.delete(path);
+            } catch (IOException e) {
+                log.error(e.getMessage());
             }
-        });
+        }
+//        });
     }
 
     private List<BankDictionary> readXlsFile(Path path) {
