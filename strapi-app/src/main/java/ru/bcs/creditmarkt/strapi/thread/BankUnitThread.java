@@ -10,6 +10,7 @@ import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 import ru.bcs.creditmarkt.strapi.utils.constants.SortConstants;
+import ru.bcs.creditmarkt.strapi.utils.constants.TimeConstants;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
@@ -51,20 +52,12 @@ public class BankUnitThread implements Runnable {
     @Override
     public void run() {
         try {
-            System.out.println("вошли в run, проверяем не пустая ли очередь fileReferencesQueue");
-//            while (!fileReferencesQueue.isEmpty()) {
-//                System.out.println("fileReferencesQueue не пустая");
-//                Path path = fileReferencesQueue.take();
-//                System.out.println("path из очереди = " + path.toString());
-//                manageBankUnits(path);
-//            }
-
             while (true) {
-                Thread.sleep(2000);
+                Thread.sleep(TimeConstants.SLEEP_TIME);
                 if (!fileReferencesQueue.isEmpty()) {
                     System.out.println("fileReferencesQueue не пустая");
                     Path path = fileReferencesQueue.take();
-                    System.out.println("path из очереди = " + path.toString());
+                    log.info(String.format(messageBundle.getString("queue.file"), path.getFileName()));
                     manageBankUnits(path);
                 }
             }
@@ -77,23 +70,13 @@ public class BankUnitThread implements Runnable {
     private void manageBankUnits(Path path) {
         System.out.println("manageBankUnits ...");
         List<BankUnit> bankUnits = new ArrayList<>();
-        AtomicReference<List<BankDictionary>> bankDictionaries = new AtomicReference<>();
+        List<BankDictionary> bankDictionaries = readXlsFile(path);
         Set<BankUnit> updatedBankUnits = new HashSet<>();
-
-        readXlsFileList(path, bankUnits, bankDictionaries);
-        System.out.println("bankUnits.size()1 = " + bankUnits.size());
-
+        filterBankBranches(bankDictionaries, bankUnits);
         updateBankUnit(bankUnits, updatedBankUnits);
-        System.out.println("updatedBankUnits.size() = " + updatedBankUnits.size());
-
         bankUnits.removeAll(updatedBankUnits);
-        System.out.println("bankUnits.size()2 = " + bankUnits.size());
-
-        System.out.println();
         bankUnits.forEach(strapiClient::createBankUnit);
-
         System.out.println("task is done!");
-
     }
 
     private void updateBankUnit(List<BankUnit> bankUnits, Set<BankUnit> updatedBankUnits) {
@@ -123,18 +106,6 @@ public class BankUnitThread implements Runnable {
         }
     }
 
-    private void readXlsFileList(Path path, List<BankUnit> bankUnits, AtomicReference<List<BankDictionary>> bankDictionaries) {
-        bankDictionaries.set(readXlsFile(path));
-        filterBankBranches(bankDictionaries.get(), bankUnits);
-        if (Files.exists(path)) {
-            try {
-                Files.delete(path);
-            } catch (IOException e) {
-                log.error(e.getMessage());
-            }
-        }
-    }
-
     private List<BankDictionary> readXlsFile(Path path) {
         List<BankDictionary> bankDictionaries = new ArrayList<>();
         if (Files.exists(path)) {
@@ -142,6 +113,11 @@ public class BankUnitThread implements Runnable {
             bankDictionaries = Poiji.fromExcel(file, BankDictionary.class);
             validateBankDictionaries(bankDictionaries);
             System.out.println("bankDictionaries.size() = " + bankDictionaries.size());
+            try {
+                Files.delete(path);
+            } catch (IOException e) {
+                log.error(e.getMessage());
+            }
         }
         return bankDictionaries;
     }

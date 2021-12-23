@@ -2,21 +2,15 @@ package ru.bcs.creditmarkt.strapi.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.exception.FileFormatException;
-import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
-import ru.bcs.creditmarkt.strapi.thread.BankUnitThread;
-import ru.bcs.creditmarkt.strapi.thread.BankUnitThreadExecutor;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
-import ru.bcs.creditmarkt.strapi.utils.constants.Queue;
+import ru.bcs.creditmarkt.strapi.utils.FileQueue;
 
-import javax.validation.Validator;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -29,10 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -51,7 +41,7 @@ public class FileServiceImpl implements FileService {
 
     public ResponseEntity<String> manageBankUnits(List<MultipartFile> multipartFileList) {
         List<Path> pathList = loadXlsFileList(multipartFileList);
-        Queue.fileReferencesQueue.addAll(pathList);
+        FileQueue.references.addAll(pathList);
         return new ResponseEntity<>("file uploaded", HttpStatus.OK);
     }
 

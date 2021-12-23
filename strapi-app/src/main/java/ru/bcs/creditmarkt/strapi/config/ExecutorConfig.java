@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
 import ru.bcs.creditmarkt.strapi.thread.BankUnitThreadExecutor;
-import ru.bcs.creditmarkt.strapi.utils.constants.Queue;
+import ru.bcs.creditmarkt.strapi.utils.FileQueue;
 
 import javax.validation.Validator;
 
@@ -16,6 +16,6 @@ public class ExecutorConfig {
     public BankUnitThreadExecutor getExecutor(BankUnitMapper mapper,
                                               StrapiClient strapiClient,
                                               Validator validator) {
-        return new BankUnitThreadExecutor(mapper, strapiClient, validator, Queue.fileReferencesQueue);
+        return new BankUnitThreadExecutor(mapper, strapiClient, validator, FileQueue.references);
     }
 }
