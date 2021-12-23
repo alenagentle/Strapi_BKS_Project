@@ -10,7 +10,6 @@ import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
 import ru.bcs.creditmarkt.strapi.utils.constants.SortConstants;
-import ru.bcs.creditmarkt.strapi.utils.constants.TimeConstants;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
@@ -23,7 +22,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class BankUnitThread implements Runnable {
@@ -52,19 +50,15 @@ public class BankUnitThread implements Runnable {
     @Override
     public void run() {
         try {
-            while (true) {
-                Thread.sleep(TimeConstants.SLEEP_TIME);
-                if (!fileReferencesQueue.isEmpty()) {
-                    System.out.println("fileReferencesQueue не пустая");
-                    Path path = fileReferencesQueue.take();
-                    log.info(String.format(messageBundle.getString("queue.file"), path.getFileName()));
-                    manageBankUnits(path);
-                }
+            Path path;
+            while (!((path = fileReferencesQueue.take()).toString().isEmpty())) {
+                System.out.println("fileReferencesQueue не пустая");
+                log.info(String.format(messageBundle.getString("queue.file"), path.getFileName()));
+                manageBankUnits(path);
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
-
     }
 
     private void manageBankUnits(Path path) {
