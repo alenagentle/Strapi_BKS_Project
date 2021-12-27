@@ -3,14 +3,21 @@ package ru.bcs.creditmarkt.strapi.thread;
 import com.poiji.bind.Poiji;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
-import ru.bcs.creditmarkt.strapi.dto.strapi.*;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankBranch;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankDictionary;
+import ru.bcs.creditmarkt.strapi.dto.strapi.BankUnit;
+import ru.bcs.creditmarkt.strapi.dto.strapi.City;
+import ru.bcs.creditmarkt.strapi.entity.BankUnitEntity;
 import ru.bcs.creditmarkt.strapi.exception.NotFoundException;
 import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
+import ru.bcs.creditmarkt.strapi.repository.BankUnitRepository;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 import ru.bcs.creditmarkt.strapi.utils.constants.SeparatorConstants;
-import ru.bcs.creditmarkt.strapi.utils.constants.SortConstants;
 
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 import javax.validation.Validator;
@@ -26,11 +33,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class BankUnitThread implements Runnable {
 
+    private final EntityManager manager;
     private final BankUnitMapper mapper;
     private final StrapiClient strapiClient;
+    private final BankUnitRepository bankUnitRepository;
     private final Validator validator;
     private BlockingQueue<Path> fileReferencesQueue;
-
     private final ResourceBundle messageBundle = Localization.getMessageBundle();
     private final SimpleDateFormat dateFormatWithMin = new SimpleDateFormat(messageBundle.getString("time.format.min"));
 
@@ -40,12 +48,17 @@ public class BankUnitThread implements Runnable {
     public BankUnitThread(BankUnitMapper mapper,
                           StrapiClient strapiClient,
                           Validator validator,
-                          BlockingQueue<Path> fileReferencesQueue) {
+                          BlockingQueue<Path> fileReferencesQueue,
+                          EntityManager manager,
+                          BankUnitRepository bankUnitRepository) {
         this.mapper = mapper;
         this.strapiClient = strapiClient;
         this.validator = validator;
         this.fileReferencesQueue = fileReferencesQueue;
+        this.manager = manager;
+        this.bankUnitRepository = bankUnitRepository;
     }
+
 
     @Override
     public void run() {
@@ -61,43 +74,99 @@ public class BankUnitThread implements Runnable {
         }
     }
 
-    private void manageBankUnits(Path path) {
+    @Transactional
+    public void manageBankUnits(Path path) {
         System.out.println("manageBankUnits ...");
         List<BankUnit> bankUnits = new ArrayList<>();
         List<BankDictionary> bankDictionaries = readXlsFile(path);
-        Set<BankUnit> updatedBankUnits = new HashSet<>();
+        List<BankUnit> updatedBankUnits = new ArrayList<>();
         filterBankBranches(bankDictionaries, bankUnits);
+        System.out.println("bankUnits.size() = " + bankUnits.size() + ", time: "
+                + new SimpleDateFormat("yyyy.MM.dd HH:mm:sss").format(new Date()));
+
         updateBankUnit(bankUnits, updatedBankUnits);
+//        System.out.println("updatedBankUnits.size() = " + updatedBankUnits.size()+ ", time: "
+//                + new SimpleDateFormat("yyyy.MM.dd HH:mm:sss").format(new Date()));
+
         bankUnits.removeAll(updatedBankUnits);
-        bankUnits.forEach(strapiClient::createBankUnit);
+//        bankUnits.forEach(strapiClient::createBankUnit);
+
+        bankUnits.forEach(bankUnit -> bankUnit.setPublishedAt(new Date()));
+
+        bankUnitRepository.saveAll(mapper.formBankUnitsToBankUnitEntities(bankUnits));
         System.out.println("task is done!");
     }
 
-    private void updateBankUnit(List<BankUnit> bankUnits, Set<BankUnit> updatedBankUnits) {
-        int limit = 500;
-        int startPosition = 0;
-        List<BankUnitUpdate> bankUnitUpdatePaginationList = strapiClient
-                .getPaginationBankUnits(limit, startPosition, SortConstants.SORT_ID);
-        while (bankUnitUpdatePaginationList.size() > 0) {
-//            System.out.println();
-            System.out.println("startPosition = " + startPosition + ", time: "
-                    + new SimpleDateFormat("yyyy.MM.dd HH:mm:ss").format(new Date()));
-
-            bankUnitUpdatePaginationList.forEach(strapiBankUnit -> {
-                bankUnits.forEach(bankUnit -> {
-                    if (strapiBankUnit.getLongId() != null && strapiBankUnit.getLongId().equals(bankUnit.getLongId())) {
-                        strapiClient.updateBankUnit(strapiBankUnit.getId(), mapper.fromBankUnitToBankUnitForRead(bankUnit));
-                        updatedBankUnits.add(bankUnit);
-//                        System.out.println("updated strapi id =" + strapiBankUnit.getId() + " "
-//                                + strapiBankUnit.getLongId() + "=" + bankUnit.getLongId() + " bankUnit");
-                    }
-                });
-            });
-//            System.out.println("bankUnitUpdatePaginationList.size() = " + bankUnitUpdatePaginationList.size());
-//            System.out.println("updatedBankUnits.size() = " + updatedBankUnits.size());
-            startPosition += limit;
-            bankUnitUpdatePaginationList = strapiClient.getPaginationBankUnits(limit, startPosition, SortConstants.SORT_ID);
+    private Map<Integer, String> getBankUnitsMap() {
+        System.out.println("dataBase...");
+        Map<Integer, String> bankUnitsMap = new HashMap<>();
+        Query query = manager.createNativeQuery("select b.id, b.\"longId\" from bank_units b order by b.id");
+        List<Object[]> list = query.getResultList();
+        for (Object[] result : list) {
+            if (result[1] != null)
+                bankUnitsMap.put((Integer) result[0], result[1].toString());
         }
+
+//        for (Map.Entry<Integer, String> entry : bankUnitsMap.entrySet()) {
+//            System.out.println(entry.getKey() + ":" + entry.getValue());
+//        }
+        return bankUnitsMap;
+
+    }
+
+    private void updateBankUnit(List<BankUnit> bankUnits, List<BankUnit> updatedBankUnits) {
+        System.out.println("updateBankUnit");
+
+        List<BankUnitEntity> strapiBankUnitList = bankUnitRepository.findAllBankUnits();
+        strapiBankUnitList.forEach(strapiBankUnit -> {
+            bankUnits.forEach(bankUnit -> {
+                if(strapiBankUnit.getLongId().equals(bankUnit.getLongId())) {
+                    bankUnit.setId(strapiBankUnit.getId());
+                    bankUnit.setPublishedAt(strapiBankUnit.getPublishedAt());
+                    bankUnit.setUpdatedAt(new Date());
+                    updatedBankUnits.add(bankUnit);
+                }
+            });
+        });
+
+        System.out.println("updatedBankUnits.size() = " + updatedBankUnits.size()+ ", time: "
+                + new SimpleDateFormat("yyyy.MM.dd HH:mm:sss").format(new Date()));
+        bankUnitRepository.saveAll(mapper.formBankUnitsToBankUnitEntities(updatedBankUnits));
+
+//        bankUnitEntityList.forEach(System.out::println);
+
+
+//        Map<Integer, String> bankUnitsMap = getBankUnitsMap();
+//        for (Map.Entry<Integer, String> entry : bankUnitsMap.entrySet()) {
+//            bankUnits.forEach(bankUnit -> {
+//                if (entry.getValue().equals(bankUnit.getLongId())) {
+//                    strapiClient.updateBankUnit(entry.getKey(), mapper.fromBankUnitToBankUnitForRead(bankUnit));
+//                    updatedBankUnits.add(bankUnit);
+//                }
+//            });
+//        }
+
+
+//        int limit = 500;
+//        int startPosition = 0;
+//        List<BankUnitUpdate> bankUnitUpdatePaginationList = strapiClient
+//                .getPaginationBankUnits(limit, startPosition, SortConstants.SORT_ID);
+//        while (bankUnitUpdatePaginationList.size() > 0) {
+////            System.out.println("startPosition = " + startPosition + ", time: "
+////                    + new SimpleDateFormat("yyyy.MM.dd HH:mm:ss").format(new Date()));
+//            bankUnitUpdatePaginationList.forEach(strapiBankUnit -> {
+//                bankUnits.forEach(bankUnit -> {
+//                    if (strapiBankUnit.getLongId() != null && strapiBankUnit.getLongId().equals(bankUnit.getLongId())) {
+//                        strapiClient.updateBankUnit(strapiBankUnit.getId(), mapper.fromBankUnitToBankUnitForRead(bankUnit));
+//                        updatedBankUnits.add(bankUnit);
+//                    }
+//                });
+//            });
+//            startPosition += limit;
+//            bankUnitUpdatePaginationList = strapiClient.getPaginationBankUnits(limit, startPosition, SortConstants.SORT_ID);
+//        }
+
+
     }
 
     private List<BankDictionary> readXlsFile(Path path) {
@@ -202,7 +271,7 @@ public class BankUnitThread implements Runnable {
 
         StringBuilder workHours = new StringBuilder("");
         if (bankDictionary.getWorkingHours() != null) {
-            String[] workHoursArray = workHoursArray = bankDictionary.getWorkingHours().split(";");
+            String[] workHoursArray = bankDictionary.getWorkingHours().split(";");
             Arrays.stream(workHoursArray)
                     .forEach(time -> workHours.append(time).append("\n"));
         }
@@ -219,7 +288,7 @@ public class BankUnitThread implements Runnable {
                 .workingHours(bankDictionary.getWorkingHours())
                 .workHours(workHours.toString())
                 .telephones(bankDictionary.getTelephones())
-                .bankBranch(bankBranch.getId().toString())
+                .bankBranch(bankBranch.getId())
                 .city(city.getId())
                 .longId(bankDictionary.getId())
                 .refill(bankDictionary.isRefill())

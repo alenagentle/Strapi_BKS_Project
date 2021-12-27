@@ -6,14 +6,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bcs.creditmarkt.strapi.client.StrapiClient;
 import ru.bcs.creditmarkt.strapi.exception.FileFormatException;
 import ru.bcs.creditmarkt.strapi.mapper.BankUnitMapper;
+import ru.bcs.creditmarkt.strapi.repository.BankUnitRepository;
 import ru.bcs.creditmarkt.strapi.thread.BankUnitThread;
 import ru.bcs.creditmarkt.strapi.utils.FileQueue;
 import ru.bcs.creditmarkt.strapi.utils.Localization;
 
+import javax.persistence.EntityManager;
 import javax.validation.Validator;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -42,8 +45,10 @@ public class FileServiceImpl implements FileService {
     private final SimpleDateFormat dateFormatWithMs = new SimpleDateFormat(messageBundle.getString("time.format.ms"));
     private final String resolvedPathText = "resolvedPath - %s";
 
+    private final EntityManager manager;
     private final BankUnitMapper mapper;
     private final StrapiClient strapiClient;
+    private final BankUnitRepository bankUnitRepository;
     private final Validator validator;
     private Thread thread;
 
@@ -51,11 +56,11 @@ public class FileServiceImpl implements FileService {
         List<Path> pathList = loadXlsFileList(multipartFileList);
         FileQueue.references.addAll(pathList);
 
-        if (thread == null) {
-            thread = new Thread(new BankUnitThread(mapper, strapiClient, validator, FileQueue.references));
+        if (thread == null || !thread.isAlive()) {
+            thread = new Thread(new BankUnitThread(mapper, strapiClient, validator, FileQueue.references, manager, bankUnitRepository));
+            thread.setDaemon(true);
             thread.start();
         }
-        System.out.println("*** thread.getName() = " + thread.getName() + " state = " + thread.getState());
         return new ResponseEntity<>("file uploaded", HttpStatus.OK);
     }
 

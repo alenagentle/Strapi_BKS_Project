@@ -1,6 +1,9 @@
 package ru.bcs.creditmarkt.strapi.dto.strapi;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
+
+import java.util.Date;
 
 @Getter
 @Setter
@@ -21,8 +24,10 @@ public class BankUnit{
     private String workHours;
     private String telephones;
     private String longId;
-    private String bankBranch;
+    private Long bankBranch;
     private Long city;
     private boolean refill;
     private boolean cashReceipt;
+    private Date publishedAt;
+    private Date updatedAt;
 }
